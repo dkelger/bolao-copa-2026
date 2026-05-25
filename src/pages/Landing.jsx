@@ -24,7 +24,7 @@ export default function Landing() {
         padding:"0 32px", height:60}}>
         <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:24,
           color:"white", letterSpacing:3}}>BOLÃO 🌍 2026</div>
-        <div style={{display:"flex", gap:12}}>
+        <div style={{display:"flex", gap:12, alignItems:"center"}}>
           {participantes !== null && (
             <div style={{background:"rgba(0,200,83,.12)", border:"1px solid rgba(0,200,83,.3)",
               borderRadius:20, padding:"4px 14px", fontSize:13, color:"#00C853", fontWeight:700}}>
@@ -88,7 +88,7 @@ export default function Landing() {
           color:"white", textAlign:"center", letterSpacing:3, marginBottom:48}}>
           COMO FUNCIONA
         </h2>
-        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:20}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:20}}>
           {[
             { n:"01", titulo:"Inscreva-se", desc:"Pague a taxa de R$ 50 via PIX e garanta sua vaga no bolão." },
             { n:"02", titulo:"Escolha 3 times", desc:"Selecione 3 seleções que você acredita que podem ser campeãs." },
