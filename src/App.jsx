@@ -5,12 +5,14 @@ import Dashboard  from './pages/Dashboard'
 import Ranking    from './pages/Ranking'
 import Admin      from './pages/Admin'
 import Quiz       from './pages/Quiz'
+import Login      from './pages/Login'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/"           element={<Landing/>}/>
+        <Route path="/login"      element={<Login/>}/>
         <Route path="/inscricao"  element={<Inscricao/>}/>
         <Route path="/dashboard"  element={<Dashboard/>}/>
         <Route path="/ranking"    element={<Ranking/>}/>
