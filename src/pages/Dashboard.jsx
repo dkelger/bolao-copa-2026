@@ -101,6 +101,7 @@ export default function Dashboard() {
           </div>
           <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap"}}>
             <button style={s.btnOut} onClick={()=>navigate('/ranking')}>📊 RANKING</button>
+            <button style={s.btnOut} onClick={()=>navigate('/quiz')}>🎯 QUIZZES</button>
             <button style={s.btnOut} onClick={handleLogout}>SAIR</button>
           </div>
         </div>

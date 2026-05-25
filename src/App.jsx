@@ -3,7 +3,8 @@ import Landing    from './pages/Landing'
 import Inscricao  from './pages/Inscricao'
 import Dashboard  from './pages/Dashboard'
 import Ranking    from './pages/Ranking'
-import Admin     from './pages/Admin'
+import Admin      from './pages/Admin'
+import Quiz       from './pages/Quiz'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/dashboard"  element={<Dashboard/>}/>
         <Route path="/ranking"    element={<Ranking/>}/>
         <Route path="/admin"      element={<Admin/>}/>
+        <Route path="/quiz"       element={<Quiz/>}/>
         <Route path="*"           element={<Navigate to="/"/>}/>
       </Routes>
     </BrowserRouter>
