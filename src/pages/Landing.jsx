@@ -1,7 +1,17 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../supabase'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const [participantes, setParticipantes] = useState(null)
+
+  useEffect(() => {
+    supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => setParticipantes(count || 0))
+  }, [])
 
   return (
     <div style={{background:"#080d0a", minHeight:"100vh", color:"#dff0d8",
@@ -11,7 +21,15 @@ export default function Landing() {
       <h1 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:"clamp(64px,12vw,140px)",
         color:"white", lineHeight:.9, letterSpacing:4, margin:0}}>BOLÃO</h1>
       <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:"clamp(48px,8vw,100px)",
-        color:"#00C853", lineHeight:.9, letterSpacing:5, marginBottom:32}}>COPA 2026</h2>
+        color:"#00C853", lineHeight:.9, letterSpacing:5, marginBottom:16}}>COPA 2026</h2>
+
+      {participantes !== null && (
+        <div style={{background:"#0f1f0f", border:"1px solid #00C853", borderRadius:20,
+          padding:"6px 20px", marginBottom:24, fontSize:14, color:"#00C853", fontWeight:700}}>
+          🟢 {participantes} participante{participantes !== 1 ? 's' : ''} inscritos
+        </div>
+      )}
+
       <p style={{fontSize:18, color:"#6b8a62", maxWidth:480, lineHeight:1.7, marginBottom:40}}>
         Escolha 3 seleções favoritas, acompanhe cada jogo, responda quizzes e dispute o prêmio em tempo real.
       </p>
