@@ -30,7 +30,7 @@ export default function Login() {
         <h1 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:40,
           color:'#00C853', margin:'0 0 8px', textAlign:'center'}}>ENTRAR</h1>
         <p style={{color:'#6b8a62', textAlign:'center', marginBottom:32, fontSize:14}}>
-          Bolão Copa 2026
+          Bolao Copa 2026
         </p>
 
         {erro && (
@@ -59,7 +59,7 @@ export default function Login() {
             SENHA
           </label>
           <input value={senha} onChange={e=>setSenha(e.target.value)}
-            type="password" placeholder="Mínimo 6 caracteres"
+            type="password" placeholder="Minimo 6 caracteres"
             onKeyDown={e=>e.key==='Enter'&&handleLogin()}
             style={{width:'100%', background:'#080d0a', border:'1px solid rgba(0,200,83,.2)',
               borderRadius:10, padding:'12px 14px', color:'white', fontSize:15,
@@ -70,10 +70,17 @@ export default function Login() {
           style={{width:'100%', background:'#00C853', color:'#080d0a', border:'none',
             borderRadius:10, padding:'14px', fontFamily:"'Barlow Condensed', sans-serif",
             fontSize:18, fontWeight:700, letterSpacing:1.5, cursor:'pointer'}}>
-          {loading ? 'ENTRANDO...' : 'ENTRAR →'}
+          {loading ? 'ENTRANDO...' : 'ENTRAR'}
         </button>
 
         <p style={{textAlign:'center', marginTop:20, color:'#6b8a62', fontSize:13}}>
-          Não tem conta?{' '}
+          Nao tem conta?{' '}
           <span onClick={()=>navigate('/inscricao')}
-            style={{color:'#00C853', cursor:'pointer', fontWeight:700}}></span>
+            style={{color:'#00C853', cursor:'pointer', fontWeight:700}}>
+            Inscreva-se
+          </span>
+        </p>
+      </div>
+    </div>
+  )
+}
