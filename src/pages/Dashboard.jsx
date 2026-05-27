@@ -112,7 +112,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap"}}>
-            <button style={s.btnOut} onClick={()=>navigate('/ranking')}>RANKING</button>
+            <button style={s.btnOut} onClick={()=>navigate('/ranking')}>CLASSIFICAÇÃO</button>
             <button style={s.btnOut} onClick={()=>navigate('/quiz')}>QUIZZES</button>
             {ADMINS.includes(user?.email) && (
               <button style={{...s.btnOut, color:'#FFD700', border:'1px solid rgba(255,215,0,.3)'}}
@@ -126,8 +126,8 @@ export default function Dashboard() {
           gap:12, marginBottom:20}}>
           {[
             { val: totalPts.toFixed(1), label:"Pontos totais", color:"#FFD700" },
-            { val: ranking?.pos || '-', label:"Posicao", color:"#00C853" },
-            { val: picks.length, label:"Times escolhidos", color:"#00C853" },
+            { val: ranking?.pos || '-', label:"Posição", color:"#00C853" },
+            { val: picks.length, label:"Seleções escolhidas", color:"#00C853" },
             { val: profile?.status === 'ativo' ? 'ATIVO' : 'PENDENTE', label:"Status", color:"#dff0d8" },
           ].map(st=>(
             <div key={st.label} style={s.stat}>
@@ -141,20 +141,17 @@ export default function Dashboard() {
 
         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
           fontWeight:700, letterSpacing:2, textTransform:"uppercase",
-          color:"#6b8a62", marginBottom:12}}>MEUS TIMES</div>
+          color:"#6b8a62", marginBottom:12}}>MINHAS SELEÇÕES</div>
 
         {picks.length === 0 ? (
           <div style={s.card}>
-            <p style={{color:"#6b8a62", fontSize:14}}>Voce ainda nao escolheu seus times.</p>
-            <button style={{...s.btn, marginTop:12}} onClick={()=>navigate('/meus-times')}>
-              ESCOLHER TIMES
-            </button>
+            <p style={{color:"#6b8a62", fontSize:14}}>Você ainda não escolheu suas seleções.</p>
           </div>
         ) : (
           <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
             gap:14, marginBottom:20}}>
             {picks.map(p=>{
-              const timePts = points
+              const selPts = points
                 .filter(pt=>pt.team_id===p.team_id)
                 .reduce((a,b)=>a+Number(b.pontos),0)
               return (
@@ -162,7 +159,7 @@ export default function Dashboard() {
                   <div style={{display:"flex", alignItems:"center",
                     justifyContent:"space-between", marginBottom:12}}>
                     <div style={{display:"flex", alignItems:"center", gap:10}}>
-                      <span style={{fontSize:32}}>{BANDEIRAS[p.teams?.nome] || p.teams?.bandeira_url || '🏴'}</span>
+                      <span style={{fontSize:32}}>{BANDEIRAS[p.teams?.nome] || '🏴'}</span>
                       <div>
                         <div style={{fontFamily:"'Barlow Condensed', sans-serif",
                           fontSize:20, fontWeight:700}}>{p.teams?.nome}</div>
@@ -176,7 +173,7 @@ export default function Dashboard() {
                     </div>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontFamily:"'Bebas Neue', sans-serif",
-                        fontSize:42, color:"#00C853", lineHeight:1}}>{timePts.toFixed(1)}</div>
+                        fontSize:42, color:"#00C853", lineHeight:1}}>{selPts.toFixed(1)}</div>
                       <div style={{fontSize:11, color:"#6b8a62"}}>pontos</div>
                     </div>
                   </div>
@@ -188,7 +185,7 @@ export default function Dashboard() {
 
         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
           fontWeight:700, letterSpacing:2, textTransform:"uppercase",
-          color:"#6b8a62", marginBottom:12}}>HISTORICO DE PONTOS</div>
+          color:"#6b8a62", marginBottom:12}}>HISTÓRICO DE PONTOS</div>
 
         <div style={s.card}>
           {points.length === 0 ? (
@@ -219,7 +216,7 @@ export default function Dashboard() {
               <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:16,
                 fontWeight:700, color:"#FFD700", marginBottom:4}}>Pagamento pendente</div>
               <div style={{fontSize:13, color:"#6b8a62"}}>
-                Complete o pagamento para ativar sua inscricao.</div>
+                Complete o pagamento para ativar sua inscrição.</div>
             </div>
             <button style={{...s.btn, background:"#FFD700"}}
               onClick={()=>navigate('/inscricao')}>
