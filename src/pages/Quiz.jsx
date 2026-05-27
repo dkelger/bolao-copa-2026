@@ -7,6 +7,7 @@ export default function Quiz() {
   const [quizzes, setQuizzes] = useState([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [perfil, setPerfil] = useState(null)
   const [respostas, setRespostas] = useState({})
   const [enviados, setEnviados] = useState({})
   const [msg, setMsg] = useState('')
@@ -15,11 +16,15 @@ export default function Quiz() {
     supabase.auth.getSession().then(({ data }) => {
       if (!data?.session?.user) { navigate('/login'); return }
       setUser(data.session.user)
-      carregarQuizzes(data.session.user.id)
+      carregarDados(data.session.user.id)
     })
   }, [])
 
-  async function carregarQuizzes(userId) {
+  async function carregarDados(userId) {
+    const { data: prof } = await supabase
+      .from('users').select('status').eq('id', userId).single()
+    setPerfil(prof)
+
     const { data: qs } = await supabase
       .from('quizzes')
       .select('*')
@@ -66,12 +71,47 @@ export default function Quiz() {
     setTimeout(() => setMsg(''), 3000)
   }
 
+  function tempoRestante(expiraEm) {
+    if (!expiraEm) return null
+    const diff = new Date(expiraEm) - new Date()
+    if (diff <= 0) return null
+    const h = Math.floor(diff / 3600000)
+    const m = Math.floor((diff % 3600000) / 60000)
+    return `${h}h ${m}min restantes`
+  }
+
+  function quizExpirado(expiraEm) {
+    if (!expiraEm) return false
+    return new Date(expiraEm) < new Date()
+  }
+
   if (loading) return (
     <div style={{background:'#080d0a', minHeight:'100vh', display:'flex',
       alignItems:'center', justifyContent:'center', color:'#00C853', fontSize:24}}>
       Carregando quizzes...
     </div>
   )
+
+  if (perfil?.status !== 'ativo') return (
+    <div style={{background:'#080d0a', minHeight:'100vh', display:'flex',
+      flexDirection:'column', alignItems:'center', justifyContent:'center',
+      color:'white', fontFamily:"'Barlow', sans-serif", padding:24, textAlign:'center'}}>
+      <div style={{fontSize:48, marginBottom:16}}>⏳</div>
+      <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:36, color:'#FFD700'}}>
+        PAGAMENTO PENDENTE
+      </h2>
+      <p style={{color:'#6b8a62', marginBottom:24}}>
+        Os quizzes estao disponiveis apenas para participantes com pagamento confirmado.
+      </p>
+      <button onClick={()=>navigate('/dashboard')}
+        style={{background:'#00C853', color:'#080d0a', border:'none', borderRadius:10,
+          padding:'12px 24px', fontWeight:700, cursor:'pointer'}}>
+        VOLTAR AO PAINEL
+      </button>
+    </div>
+  )
+
+  const quizzesAtivos = quizzes.filter(q => !quizExpirado(q.expira_em))
 
   return (
     <div style={{background:'#080d0a', minHeight:'100vh', color:'white',
@@ -85,7 +125,7 @@ export default function Quiz() {
         <h1 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:48,
           color:'#00C853', margin:'0 0 8px'}}>QUIZZES</h1>
         <p style={{color:'#6b8a62', marginBottom:32}}>
-          Acerte e ganhe 0,5 ponto por pergunta!
+          Acerte e ganhe 0,5 ponto por pergunta! Voce tem 24h para responder cada quiz.
         </p>
 
         {msg && (
@@ -97,17 +137,27 @@ export default function Quiz() {
           </div>
         )}
 
-        {quizzes.length === 0 ? (
+        {quizzesAtivos.length === 0 ? (
           <div style={{textAlign:'center', color:'#6b8a62', marginTop:80}}>
-            <div style={{fontSize:48, marginBottom:16}}>?</div>
+            <div style={{fontSize:48, marginBottom:16}}>🎯</div>
             <p>Nenhum quiz disponivel no momento.</p>
             <p>Volte em breve!</p>
           </div>
         ) : (
-          quizzes.map(quiz => (
+          quizzesAtivos.map(quiz => (
             <div key={quiz.id} style={{background:'#0f1a0f', border:'1px solid #1a3a1a',
               borderRadius:16, padding:24, marginBottom:20}}>
-              <p style={{fontWeight:700, fontSize:18, marginBottom:16}}>{quiz.pergunta}</p>
+              <div style={{display:'flex', justifyContent:'space-between',
+                alignItems:'flex-start', marginBottom:12, flexWrap:'wrap', gap:8}}>
+                <p style={{fontWeight:700, fontSize:18, margin:0}}>{quiz.pergunta}</p>
+                {tempoRestante(quiz.expira_em) && !enviados[quiz.id] && (
+                  <span style={{background:'rgba(255,215,0,.1)', color:'#FFD700',
+                    border:'1px solid rgba(255,215,0,.3)', borderRadius:20,
+                    padding:'3px 12px', fontSize:12, fontWeight:700, whiteSpace:'nowrap'}}>
+                    {tempoRestante(quiz.expira_em)}
+                  </span>
+                )}
+              </div>
               {(quiz.alternativas || []).map((alt, i) => (
                 <button key={i}
                   onClick={() => !enviados[quiz.id] && setRespostas(prev => ({...prev, [quiz.id]: i}))}
