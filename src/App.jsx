@@ -19,6 +19,7 @@ export default function App() {
         <Route path="/admin"      element={<Admin/>}/>
         <Route path="/quiz"       element={<Quiz/>}/>
         <Route path="*"           element={<Navigate to="/"/>}/>
+        <Route path="/meus-times" element={<MeusTimes />} />
       </Routes>
     </BrowserRouter>
   )
