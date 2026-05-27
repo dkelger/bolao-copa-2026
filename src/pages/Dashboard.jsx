@@ -2,6 +2,17 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 
+const BANDEIRAS = {
+  'Brasil': '🇧🇷', 'Argentina': '🇦🇷', 'França': '🇫🇷', 'Alemanha': '🇩🇪',
+  'Espanha': '🇪🇸', 'Portugal': '🇵🇹', 'Inglaterra': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Holanda': '🇳🇱',
+  'Bélgica': '🇧🇪', 'Uruguai': '🇺🇾', 'Colômbia': '🇨🇴', 'México': '🇲🇽',
+  'Estados Unidos': '🇺🇸', 'Japão': '🇯🇵', 'Coreia do Sul': '🇰🇷',
+  'Senegal': '🇸🇳', 'Marrocos': '🇲🇦', 'Turquia': '🇹🇷', 'Suíça': '🇨🇭',
+  'Croácia': '🇭🇷', 'Dinamarca': '🇩🇰', 'Suécia': '🇸🇪', 'Polônia': '🇵🇱',
+  'Austrália': '🇦🇺', 'Canadá': '🇨🇦', 'Gana': '🇬🇭', 'Camarões': '🇨🇲',
+  'Tunísia': '🇹🇳', 'Equador': '🇪🇨', 'Catar': '🇶🇦', 'Arábia Saudita': '🇸🇦', 'Irã': '🇮🇷'
+}
+
 const ADMINS = ['dkelger@gmail.com', 'diego_admin@bolao2026.com']
 
 const s = {
@@ -147,7 +158,7 @@ export default function Dashboard() {
                   <div style={{display:"flex", alignItems:"center",
                     justifyContent:"space-between", marginBottom:12}}>
                     <div style={{display:"flex", alignItems:"center", gap:10}}>
-                      <span style={{fontSize:32}}>{p.teams?.bandeira_url || '?'}</span>
+                      <span style={{fontSize:32}}>{BANDEIRAS[p.teams?.nome] || p.teams?.bandeira_url || '🏴'}</span>
                       <div>
                         <div style={{fontFamily:"'Barlow Condensed', sans-serif",
                           fontSize:20, fontWeight:700}}>{p.teams?.nome}</div>
