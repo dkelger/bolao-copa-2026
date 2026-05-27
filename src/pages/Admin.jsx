@@ -52,8 +52,9 @@ export default function Admin() {
     setMatches(m || [])
     setUsers(u || [])
     setQuizzes(q || [])
-    const ativos = (u || []).filter(x => x.status === 'ativo').length
-    setStats({ participantes: (u||[]).length, arrecadado: ativos * 50, ativos })
+    const naoAdmin = (u || []).filter(x => x.status !== 'admin')
+    const ativos = naoAdmin.filter(x => x.status === 'ativo').length
+    setStats({ participantes: naoAdmin.length, arrecadado: ativos * 50, ativos })
   }
 
   async function lancarResultado(match) {
@@ -254,7 +255,7 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(u => (
+                  {users.filter(u => u.status !== 'admin').map(u => (
                     <tr key={u.id}>
                       <td style={s.td}><strong>{u.nome}</strong></td>
                       <td style={s.td}><span style={{ color:"#6b8a62" }}>{u.email}</span></td>
