@@ -131,7 +131,7 @@ export default function Dashboard() {
         {picks.length === 0 ? (
           <div style={s.card}>
             <p style={{color:"#6b8a62", fontSize:14}}>Voce ainda nao escolheu seus times.</p>
-            <button style={{...s.btn, marginTop:12}} onClick={()=>navigate('/inscricao')}>
+            <button style={{...s.btn, marginTop:12}} onClick={()=>navigate('/inscricao?step=2')}>
               ESCOLHER TIMES
             </button>
           </div>

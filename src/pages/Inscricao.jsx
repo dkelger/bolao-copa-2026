@@ -27,8 +27,10 @@ export default function Inscricao() {
   const [bonus, setBonus] = useState({ artilheiro:'', placar:'' })
 
   useEffect(() => {
-    supabase.from('teams').select('*').order('grupo').then(({ data }) => setTeams(data || []))
-  }, [])
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('step') === '2') setStep(2)
+  supabase.from('teams').select('*').order('grupo').then(({ data }) => setTeams(data || []))
+}, [])
 
   const filtered = teams.filter(t => t.nome.toLowerCase().includes(search.toLowerCase()))
 
