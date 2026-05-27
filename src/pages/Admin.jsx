@@ -31,15 +31,16 @@ export default function Admin() {
   const [autorizado, setAutorizado] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data?.user || data.user.email !== 'dkelger@gmail.com') {
-        setAutorizado(false)
-        navigate('/')
-      } else {
-        setAutorizado(true)
-        loadAll()
-      }
-    })
+    supabase.auth.getSession().then(({ data }) => {
+  const email = data?.session?.user?.email
+  if (!email || !['dkelger@gmail.com','diego_admin@bolao2026.com'].includes(email)) {
+    setAutorizado(false)
+    navigate('/')
+  } else {
+    setAutorizado(true)
+    loadAll()
+  }
+})
   }, [])
 
   async function loadAll() {
