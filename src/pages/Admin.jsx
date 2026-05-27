@@ -241,7 +241,7 @@ export default function Admin() {
         {tab==='participantes' && (
           <div style={s.card}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>
-              Participantes ({users.length})
+              Participantes ({users.filter(u => u.status !== 'admin').length})
             </div>
             <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%", borderCollapse:"collapse" }}>
