@@ -6,6 +6,7 @@ import Ranking    from './pages/Ranking'
 import Admin      from './pages/Admin'
 import Quiz       from './pages/Quiz'
 import Login      from './pages/Login'
+import MeusTimes  from './pages/MeusTimes'
 
 export default function App() {
   return (
