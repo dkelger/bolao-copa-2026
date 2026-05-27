@@ -28,8 +28,19 @@ export default function Admin() {
   const [quiz, setQuiz] = useState({ pergunta:'', a:'', b:'', c:'', d:'', correta:'A', expira:'' })
   const [notif, setNotif] = useState({ titulo:'', mensagem:'' })
   const [stats, setStats] = useState({ participantes:0, arrecadado:0, ativos:0 })
+  const [autorizado, setAutorizado] = useState(null)
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data?.user || data.user.email !== 'dkelger@gmail.com') {
+        setAutorizado(false)
+        navigate('/')
+      } else {
+        setAutorizado(true)
+        loadAll()
+      }
+    })
+  }, [])
 
   async function loadAll() {
     const [{ data: m }, { data: u }, { data: q }] = await Promise.all([
@@ -74,12 +85,12 @@ export default function Admin() {
 
       let pontos = 0, tipo = '', desc = ''
       if (match.fase === 'grupos') {
-        if (teamScore > opponentScore) { pontos = 3; tipo = 'vitoria_grupo'; desc = 'Vitória na fase de grupos +3pts' }
+        if (teamScore > opponentScore) { pontos = 3; tipo = 'vitoria_grupo'; desc = 'Vitoria na fase de grupos +3pts' }
         else if (teamScore === opponentScore) { pontos = 1; tipo = 'empate_grupo'; desc = 'Empate na fase de grupos +1pt' }
         else { pontos = 0; tipo = 'derrota_grupo'; desc = 'Derrota na fase de grupos' }
       } else {
         if (pick.team_id === vencedor) {
-          pontos = 3; tipo = 'mata_mata_normal'; desc = `Avançou no mata-mata +3pts`
+          pontos = 3; tipo = 'mata_mata_normal'; desc = 'Avancou no mata-mata +3pts'
         }
       }
 
@@ -116,6 +127,15 @@ export default function Admin() {
 
   const FASE_LABEL = { grupos:'Grupos', oitavas:'Oitavas', quartas:'Quartas', semi:'Semi', final:'Final' }
 
+  if (autorizado === null) return (
+    <div style={{background:'#080d0a', minHeight:'100vh', display:'flex',
+      alignItems:'center', justifyContent:'center', color:'#00C853', fontSize:18}}>
+      Verificando acesso...
+    </div>
+  )
+
+  if (!autorizado) return null
+
   return (
     <div style={s.wrap}>
       <div style={s.inner}>
@@ -127,7 +147,7 @@ export default function Admin() {
             <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:44, color:"white", letterSpacing:3 }}>ADMINISTRADOR</div>
           </div>
           <div style={{ display:"flex", gap:10 }}>
-            <button style={s.btnOut} onClick={() => navigate('/')}>← INÍCIO</button>
+            <button style={s.btnOut} onClick={() => navigate('/')}>← INICIO</button>
           </div>
         </div>
 
@@ -137,7 +157,7 @@ export default function Admin() {
             { val: stats.participantes, label:"Inscritos", color:"#dff0d8" },
             { val: stats.ativos, label:"Pagamentos confirmados", color:"#00C853" },
             { val: `R$ ${(stats.arrecadado).toLocaleString('pt-BR')}`, label:"Arrecadado", color:"#FFD700" },
-            { val: `R$ ${Math.round(stats.arrecadado * 0.85).toLocaleString('pt-BR')}`, label:"Fundo prêmios", color:"#00C853" },
+            { val: `R$ ${Math.round(stats.arrecadado * 0.85).toLocaleString('pt-BR')}`, label:"Fundo premios", color:"#00C853" },
           ].map(st => (
             <div key={st.label} style={s.card}>
               <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:38, color:st.color, lineHeight:1 }}>{st.val}</div>
@@ -148,7 +168,7 @@ export default function Admin() {
 
         {/* TABS */}
         <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
-          {[['partidas','⚽ Partidas'],['participantes','👥 Participantes'],['quizzes','🧠 Quizzes'],['notif','🔔 Notificações']].map(([id,label]) => (
+          {[['partidas','⚽ Partidas'],['participantes','👥 Participantes'],['quizzes','🧠 Quizzes'],['notif','🔔 Notificacoes']].map(([id,label]) => (
             <button key={id} style={s.tab(tab===id)} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -156,7 +176,7 @@ export default function Admin() {
         {/* PARTIDAS */}
         {tab==='partidas' && (
           <div style={s.card}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Lançar Resultados</div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Lancar Resultados</div>
             {matches.length === 0 ? (
               <p style={{ color:"#6b8a62", fontSize:14 }}>Nenhuma partida cadastrada ainda.</p>
             ) : (
@@ -168,7 +188,7 @@ export default function Admin() {
                       <th style={s.th}>Fase</th>
                       <th style={s.th}>Placar</th>
                       <th style={s.th}>Status</th>
-                      <th style={s.th}>Ação</th>
+                      <th style={s.th}>Acao</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -185,7 +205,7 @@ export default function Admin() {
                             </div>
                           ) : (
                             <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, color: m.status==='encerrado'?"#00C853":"#6b8a62" }}>
-                              {m.status==='encerrado' ? `${m.placar_a} x ${m.placar_b}` : '— x —'}
+                              {m.status==='encerrado' ? `${m.placar_a} x ${m.placar_b}` : '- x -'}
                             </span>
                           )}
                         </td>
@@ -199,10 +219,10 @@ export default function Admin() {
                             editMatch===m.id ? (
                               <div style={{ display:"flex", gap:6 }}>
                                 <button style={s.btn} onClick={()=>lancarResultado(m)} disabled={loading}>SALVAR</button>
-                                <button style={s.btnOut} onClick={()=>setEditMatch(null)}>✕</button>
+                                <button style={s.btnOut} onClick={()=>setEditMatch(null)}>X</button>
                               </div>
                             ) : (
-                              <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:''}) }}>✏️ LANÇAR</button>
+                              <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:''}) }}>LANCAR</button>
                             )
                           )}
                         </td>
@@ -229,15 +249,15 @@ export default function Admin() {
                     <th style={s.th}>E-mail</th>
                     <th style={s.th}>WhatsApp</th>
                     <th style={s.th}>Status</th>
-                    <th style={s.th}>Ação</th>
+                    <th style={s.th}>Acao</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id}>
                       <td style={s.td}><strong>{u.nome}</strong></td>
-                      <td style={s.td} ><span style={{ color:"#6b8a62" }}>{u.email}</span></td>
-                      <td style={s.td}>{u.whatsapp || '—'}</td>
+                      <td style={s.td}><span style={{ color:"#6b8a62" }}>{u.email}</span></td>
+                      <td style={s.td}>{u.whatsapp || '-'}</td>
                       <td style={s.td}>
                         <span style={{ background: u.status==='ativo'?"rgba(0,200,83,.12)":"rgba(255,215,0,.1)", color: u.status==='ativo'?"#00C853":"#FFD700", border: `1px solid ${u.status==='ativo'?"rgba(0,200,83,.25)":"rgba(255,215,0,.25)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
                           {u.status}
@@ -245,7 +265,7 @@ export default function Admin() {
                       </td>
                       <td style={s.td}>
                         {u.status === 'pendente' && (
-                          <button style={s.btn} onClick={() => ativarUsuario(u.id)}>✅ ATIVAR</button>
+                          <button style={s.btn} onClick={() => ativarUsuario(u.id)}>ATIVAR</button>
                         )}
                       </td>
                     </tr>
@@ -307,24 +327,24 @@ export default function Admin() {
           </div>
         )}
 
-        {/* NOTIFICAÇÕES */}
+        {/* NOTIFICACOES */}
         {tab==='notif' && (
           <div style={s.card}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Enviar Notificação</div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Enviar Notificacao</div>
             <div style={{ marginBottom:12 }}>
-              <label style={{ fontSize:12, color:"#6b8a62", display:"block", marginBottom:6 }}>TÍTULO</label>
-              <input style={{ ...s.input, width:"100%" }} value={notif.titulo} onChange={e=>setNotif({...notif,titulo:e.target.value})} placeholder="Ex: Quiz novo disponível!"/>
+              <label style={{ fontSize:12, color:"#6b8a62", display:"block", marginBottom:6 }}>TITULO</label>
+              <input style={{ ...s.input, width:"100%" }} value={notif.titulo} onChange={e=>setNotif({...notif,titulo:e.target.value})} placeholder="Ex: Quiz novo disponivel!"/>
             </div>
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:12, color:"#6b8a62", display:"block", marginBottom:6 }}>MENSAGEM</label>
               <textarea style={{ ...s.input, width:"100%", minHeight:100, resize:"vertical" }}
-                value={notif.mensagem} onChange={e=>setNotif({...notif,mensagem:e.target.value})} placeholder="Texto da notificação..."/>
+                value={notif.mensagem} onChange={e=>setNotif({...notif,mensagem:e.target.value})} placeholder="Texto da notificacao..."/>
             </div>
             <button style={s.btn} onClick={async () => {
               await supabase.from('notifications').insert({ tipo:'custom', titulo:notif.titulo, mensagem:notif.mensagem, canal:'push' })
               setNotif({ titulo:'', mensagem:'' })
-              alert('Notificação salva!')
-            }}>📤 SALVAR NOTIFICAÇÃO</button>
+              alert('Notificacao salva!')
+            }}>SALVAR NOTIFICACAO</button>
           </div>
         )}
 
