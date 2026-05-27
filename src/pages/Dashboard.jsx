@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 
+const ADMINS = ['dkelger@gmail.com', 'diego_admin@bolao2026.com']
+
 const s = {
   wrap: { background:"#080d0a", minHeight:"100vh", color:"#dff0d8",
     fontFamily:"'Barlow', sans-serif", padding:"32px 24px" },
@@ -35,18 +37,15 @@ export default function Dashboard() {
     if (!user) { navigate('/inscricao'); return }
     setUser(user)
 
-    // Perfil
     const { data: prof } = await supabase
       .from('users').select('*').eq('id', user.id).single()
     setProfile(prof)
 
-    // Picks com times
     const { data: picksData } = await supabase
       .from('picks').select('*, teams(nome, grupo, fase_atual, bandeira_url)')
       .eq('user_id', user.id)
     setPicks(picksData || [])
 
-    // Histórico de pontos
     const { data: ptsData } = await supabase
       .from('points_log').select('*')
       .eq('user_id', user.id)
@@ -54,7 +53,6 @@ export default function Dashboard() {
       .limit(10)
     setPoints(ptsData || [])
 
-    // Posição no ranking
     const { data: allPts } = await supabase
       .from('points_log').select('user_id, pontos')
     if (allPts) {
@@ -87,7 +85,6 @@ export default function Dashboard() {
     <div style={s.wrap}>
       <div style={s.inner}>
 
-        {/* HEADER */}
         <div style={{display:"flex", justifyContent:"space-between",
           alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:16}}>
           <div>
@@ -100,20 +97,23 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap"}}>
-            <button style={s.btnOut} onClick={()=>navigate('/ranking')}>📊 RANKING</button>
-            <button style={s.btnOut} onClick={()=>navigate('/quiz')}>🎯 QUIZZES</button>
+            <button style={s.btnOut} onClick={()=>navigate('/ranking')}>RANKING</button>
+            <button style={s.btnOut} onClick={()=>navigate('/quiz')}>QUIZZES</button>
+            {ADMINS.includes(user?.email) && (
+              <button style={{...s.btnOut, color:'#FFD700', border:'1px solid rgba(255,215,0,.3)'}}
+                onClick={()=>navigate('/admin')}>ADMIN</button>
+            )}
             <button style={s.btnOut} onClick={handleLogout}>SAIR</button>
           </div>
         </div>
 
-        {/* STATS */}
         <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",
           gap:12, marginBottom:20}}>
           {[
             { val: totalPts.toFixed(1), label:"Pontos totais", color:"#FFD700" },
-            { val: ranking?.pos || '—', label:"Posição", color:"#00C853" },
+            { val: ranking?.pos || '-', label:"Posicao", color:"#00C853" },
             { val: picks.length, label:"Times escolhidos", color:"#00C853" },
-            { val: profile?.status === 'ativo' ? '✅' : '⏳', label:"Status", color:"#dff0d8" },
+            { val: profile?.status === 'ativo' ? 'ATIVO' : 'PENDENTE', label:"Status", color:"#dff0d8" },
           ].map(st=>(
             <div key={st.label} style={s.stat}>
               <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:40,
@@ -124,16 +124,15 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* MEUS TIMES */}
         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
           fontWeight:700, letterSpacing:2, textTransform:"uppercase",
           color:"#6b8a62", marginBottom:12}}>MEUS TIMES</div>
 
         {picks.length === 0 ? (
           <div style={s.card}>
-            <p style={{color:"#6b8a62", fontSize:14}}>Você ainda não escolheu seus times.</p>
+            <p style={{color:"#6b8a62", fontSize:14}}>Voce ainda nao escolheu seus times.</p>
             <button style={{...s.btn, marginTop:12}} onClick={()=>navigate('/inscricao')}>
-              ESCOLHER TIMES →
+              ESCOLHER TIMES
             </button>
           </div>
         ) : (
@@ -148,7 +147,7 @@ export default function Dashboard() {
                   <div style={{display:"flex", alignItems:"center",
                     justifyContent:"space-between", marginBottom:12}}>
                     <div style={{display:"flex", alignItems:"center", gap:10}}>
-                      <span style={{fontSize:32}}>{p.teams?.bandeira_url || '🏴'}</span>
+                      <span style={{fontSize:32}}>{p.teams?.bandeira_url || '?'}</span>
                       <div>
                         <div style={{fontFamily:"'Barlow Condensed', sans-serif",
                           fontSize:20, fontWeight:700}}>{p.teams?.nome}</div>
@@ -172,10 +171,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* HISTÓRICO */}
         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
           fontWeight:700, letterSpacing:2, textTransform:"uppercase",
-          color:"#6b8a62", marginBottom:12}}>HISTÓRICO DE PONTOS</div>
+          color:"#6b8a62", marginBottom:12}}>HISTORICO DE PONTOS</div>
 
         <div style={s.card}>
           {points.length === 0 ? (
@@ -198,20 +196,19 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* STATUS PAGAMENTO */}
         {profile?.status === 'pendente' && (
           <div style={{background:"rgba(255,215,0,.07)", border:"1px solid rgba(255,215,0,.2)",
             borderRadius:14, padding:"20px 24px", marginTop:8,
             display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12}}>
             <div>
               <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:16,
-                fontWeight:700, color:"#FFD700", marginBottom:4}}>⏳ Pagamento pendente</div>
+                fontWeight:700, color:"#FFD700", marginBottom:4}}>Pagamento pendente</div>
               <div style={{fontSize:13, color:"#6b8a62"}}>
-                Complete o pagamento para ativar sua inscrição.</div>
+                Complete o pagamento para ativar sua inscricao.</div>
             </div>
             <button style={{...s.btn, background:"#FFD700"}}
               onClick={()=>navigate('/inscricao')}>
-              PAGAR AGORA →
+              PAGAR AGORA
             </button>
           </div>
         )}
