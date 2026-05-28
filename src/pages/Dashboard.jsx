@@ -38,13 +38,14 @@ const s = {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser]       = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [picks, setPicks]     = useState([])
-  const [points, setPoints]   = useState([])
-  const [ranking, setRanking] = useState(null)
-  const [premio, setPremio]   = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]           = useState(null)
+  const [profile, setProfile]     = useState(null)
+  const [picks, setPicks]         = useState([])
+  const [points, setPoints]       = useState([])
+  const [ranking, setRanking]     = useState(null)
+  const [premio, setPremio]       = useState(null)
+  const [quizPendente, setQuizPendente] = useState(false)
+  const [loading, setLoading]     = useState(true)
 
   useEffect(()=>{ loadAll() },[])
 
@@ -95,6 +96,24 @@ export default function Dashboard() {
       })
     }
 
+    // Verifica se tem quiz não respondido
+    const agora = new Date().toISOString()
+    const { data: quizzes } = await supabase
+      .from('quizzes')
+      .select('id')
+      .eq('publicado', true)
+      .gt('expira_em', agora)
+
+    if (quizzes && quizzes.length > 0) {
+      const { data: respostas } = await supabase
+        .from('quiz_respostas')
+        .select('quiz_id')
+        .eq('user_id', user.id)
+      const respondidos = new Set((respostas || []).map(r => r.quiz_id))
+      const temPendente = quizzes.some(q => !respondidos.has(q.id))
+      setQuizPendente(temPendente)
+    }
+
     setLoading(false)
   }
 
@@ -128,7 +147,19 @@ export default function Dashboard() {
           </div>
           <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap"}}>
             <button style={s.btnOut} onClick={()=>navigate('/ranking')}>CLASSIFICAÇÃO</button>
-            <button style={s.btnOut} onClick={()=>navigate('/quiz')}>QUIZZES</button>
+            <button
+              style={{...s.btnOut, position:"relative"}}
+              onClick={()=>navigate('/quiz')}>
+              QUIZZES
+              {quizPendente && (
+                <span style={{
+                  position:"absolute", top:-6, right:-6,
+                  background:"#ff4444", borderRadius:"50%",
+                  width:10, height:10, display:"block",
+                  border:"2px solid #080d0a"
+                }}/>
+              )}
+            </button>
             {ADMINS.includes(user?.email) && (
               <button style={{...s.btnOut, color:'#FFD700', border:'1px solid rgba(255,215,0,.3)'}}
                 onClick={()=>navigate('/admin')}>ADMIN</button>
