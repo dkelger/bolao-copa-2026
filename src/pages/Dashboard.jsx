@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [picks, setPicks]     = useState([])
   const [points, setPoints]   = useState([])
   const [ranking, setRanking] = useState(null)
+  const [premio, setPremio]   = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(()=>{ loadAll() },[])
@@ -80,6 +81,20 @@ export default function Dashboard() {
       setRanking({ pos: pos+1, total: map[user.id] || 0, count: sorted.length })
     }
 
+    // Busca fundo de prêmios
+    const { data: users } = await supabase
+      .from('users').select('status').neq('status', 'admin')
+    if (users) {
+      const ativos = users.filter(u => u.status === 'ativo').length
+      const fundo = Math.round(ativos * 50 * 0.85)
+      setPremio({
+        total: fundo,
+        primeiro: Math.round(fundo * 0.60),
+        segundo: Math.round(fundo * 0.25),
+        terceiro: Math.round(fundo * 0.15),
+      })
+    }
+
     setLoading(false)
   }
 
@@ -101,7 +116,7 @@ export default function Dashboard() {
       <div style={s.inner}>
 
         <div style={{display:"flex", justifyContent:"space-between",
-          alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:16}}>
+          alignItems:"flex-start", marginBottom:20, flexWrap:"wrap", gap:16}}>
           <div>
             <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
               fontWeight:700, letterSpacing:2, textTransform:"uppercase",
@@ -121,6 +136,39 @@ export default function Dashboard() {
             <button style={s.btnOut} onClick={handleLogout}>SAIR</button>
           </div>
         </div>
+
+        {/* PREMIO */}
+        {premio && premio.total > 0 && (
+          <div style={{background:"rgba(255,215,0,.07)", border:"1px solid rgba(255,215,0,.2)",
+            borderRadius:14, padding:"16px 20px", marginBottom:20,
+            display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12}}>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
+                fontWeight:700, letterSpacing:2, color:"#FFD700", textTransform:"uppercase", marginBottom:4}}>
+                🏆 Fundo de Prêmios
+              </div>
+              <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:36,
+                color:"#FFD700", lineHeight:1}}>
+                R$ {premio.total.toLocaleString('pt-BR')}
+              </div>
+            </div>
+            <div style={{display:"flex", gap:20, flexWrap:"wrap"}}>
+              {[
+                { pos:"🥇 1º", val: premio.primeiro },
+                { pos:"🥈 2º", val: premio.segundo },
+                { pos:"🥉 3º", val: premio.terceiro },
+              ].map(p => (
+                <div key={p.pos} style={{textAlign:"center"}}>
+                  <div style={{fontSize:12, color:"#6b8a62", marginBottom:2}}>{p.pos}</div>
+                  <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:18,
+                    fontWeight:700, color:"#dff0d8"}}>
+                    R$ {p.val.toLocaleString('pt-BR')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",
           gap:12, marginBottom:20}}>
