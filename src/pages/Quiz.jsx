@@ -59,11 +59,13 @@ export default function Quiz() {
     })
 
     if (acertou) {
-      const { data: userData } = await supabase
-        .from('users').select('pontos').eq('id', user.id).single()
-      await supabase.from('users')
-        .update({ pontos: (userData?.pontos || 0) + 0.5 })
-        .eq('id', user.id)
+      await supabase.from('points_log').insert({
+        user_id: user.id,
+        quiz_id: quizId,
+        tipo: 'quiz',
+        pontos: 0.5,
+        descricao: 'Quiz correto +0.5pt'
+      })  
     }
 
     setEnviados(prev => ({ ...prev, [quizId]: true }))
