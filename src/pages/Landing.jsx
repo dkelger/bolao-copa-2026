@@ -5,12 +5,25 @@ import { supabase } from '../supabase'
 export default function Landing() {
   const navigate = useNavigate()
   const [participantes, setParticipantes] = useState(null)
+  const [premio, setPremio] = useState({ total: 0, primeiro: 0, segundo: 0, terceiro: 0 })
 
   useEffect(() => {
     supabase
       .from('users')
-      .select('id', { count: 'exact', head: true })
-      .then(({ count }) => setParticipantes(count || 0))
+      .select('id, status')
+      .neq('status', 'admin')
+      .then(({ data }) => {
+        const total = (data || []).length
+        const ativos = (data || []).filter(u => u.status === 'ativo').length
+        setParticipantes(total)
+        const fundo = Math.round(ativos * 50 * 0.85)
+        setPremio({
+          total: fundo,
+          primeiro: Math.round(fundo * 0.60),
+          segundo: Math.round(fundo * 0.25),
+          terceiro: Math.round(fundo * 0.15),
+        })
+      })
   }, [])
 
   return (
@@ -25,10 +38,10 @@ export default function Landing() {
         <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:24,
           color:"white", letterSpacing:3}}>BOLÃO 🌍 2026</div>
         <div style={{display:"flex", gap:12, alignItems:"center"}}>
-          {participantes !== null && (
+          {participantes !== null && participantes > 0 && (
             <div style={{background:"rgba(0,200,83,.12)", border:"1px solid rgba(0,200,83,.3)",
               borderRadius:20, padding:"4px 14px", fontSize:13, color:"#00C853", fontWeight:700}}>
-              🟢 {participantes} participantes
+              🟢 {participantes} {participantes === 1 ? 'participante' : 'participantes'}
             </div>
           )}
           <button onClick={()=>navigate('/login')}
@@ -62,6 +75,36 @@ export default function Landing() {
         <h2 style={{fontFamily:"'Bebas Neue', sans-serif",
           fontSize:"clamp(60px,10vw,120px)", color:"#00C853",
           lineHeight:.85, letterSpacing:5, margin:"0 0 32px"}}>COPA 2026</h2>
+
+        {/* PREMIO */}
+        {premio.total > 0 && (
+          <div style={{background:"rgba(255,215,0,.07)", border:"1px solid rgba(255,215,0,.2)",
+            borderRadius:16, padding:"20px 32px", marginBottom:32, display:"inline-block"}}>
+            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
+              fontWeight:700, letterSpacing:2, color:"#FFD700", textTransform:"uppercase",
+              marginBottom:12}}>🏆 Fundo de Prêmios</div>
+            <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
+              color:"#FFD700", lineHeight:1, marginBottom:16}}>
+              R$ {premio.total.toLocaleString('pt-BR')}
+            </div>
+            <div style={{display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap"}}>
+              {[
+                { pos:"🥇 1º lugar", val: premio.primeiro },
+                { pos:"🥈 2º lugar", val: premio.segundo },
+                { pos:"🥉 3º lugar", val: premio.terceiro },
+              ].map(p => (
+                <div key={p.pos} style={{textAlign:"center"}}>
+                  <div style={{fontSize:13, color:"#6b8a62", marginBottom:4}}>{p.pos}</div>
+                  <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:22,
+                    fontWeight:700, color:"#dff0d8"}}>
+                    R$ {p.val.toLocaleString('pt-BR')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <p style={{fontSize:18, color:"#6b8a62", maxWidth:520,
           lineHeight:1.8, marginBottom:48}}>
           Escolha 3 seleções favoritas, acompanhe cada jogo, responda quizzes temáticos e dispute o prêmio em tempo real.
@@ -91,7 +134,7 @@ export default function Landing() {
         <div style={{display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:20}}>
           {[
             { n:"01", titulo:"Inscreva-se", desc:"Pague a taxa de R$ 50 via PIX e garanta sua vaga no bolão." },
-            { n:"02", titulo:"Escolha 3 times", desc:"Selecione 3 seleções que você acredita que podem ser campeãs." },
+            { n:"02", titulo:"Escolha 3 seleções", desc:"Selecione 3 seleções que você acredita que podem ser campeãs." },
             { n:"03", titulo:"Acumule pontos", desc:"Ganhe pontos a cada vitória, empate, classificação e fase superada." },
             { n:"04", titulo:"Responda quizzes", desc:"Participe de quizzes temáticos durante a Copa e ganhe 0,5 ponto por acerto." },
           ].map(item=>(
