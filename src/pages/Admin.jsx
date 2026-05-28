@@ -32,15 +32,15 @@ export default function Admin() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-  const email = data?.session?.user?.email
-  if (!email || !['dkelger@gmail.com','diego_admin@bolao2026.com'].includes(email)) {
-    setAutorizado(false)
-    navigate('/')
-  } else {
-    setAutorizado(true)
-    loadAll()
-  }
-})
+      const email = data?.session?.user?.email
+      if (!email || !['dkelger@gmail.com','diego_admin@bolao2026.com'].includes(email)) {
+        setAutorizado(false)
+        navigate('/')
+      } else {
+        setAutorizado(true)
+        loadAll()
+      }
+    })
   }, [])
 
   async function loadAll() {
@@ -129,6 +129,14 @@ export default function Admin() {
 
   const FASE_LABEL = { grupos:'Grupos', oitavas:'Oitavas', quartas:'Quartas', semi:'Semi', final:'Final' }
 
+  const formatData = (dt) => {
+    const d = new Date(dt)
+    return {
+      data: d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }),
+      hora: d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
+    }
+  }
+
   if (autorizado === null) return (
     <div style={{background:'#080d0a', minHeight:'100vh', display:'flex',
       alignItems:'center', justifyContent:'center', color:'#00C853', fontSize:18}}>
@@ -186,6 +194,7 @@ export default function Admin() {
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
                   <thead>
                     <tr>
+                      <th style={s.th}>Data</th>
                       <th style={s.th}>Partida</th>
                       <th style={s.th}>Fase</th>
                       <th style={s.th}>Placar</th>
@@ -194,42 +203,49 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {matches.map(m => (
-                      <tr key={m.id}>
-                        <td style={s.td}><strong>{m.team_a?.nome}</strong> vs <strong>{m.team_b?.nome}</strong></td>
-                        <td style={s.td}><span style={{ color:"#6b8a62" }}>{FASE_LABEL[m.fase]||m.fase}</span></td>
-                        <td style={s.td}>
-                          {editMatch===m.id ? (
-                            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                              <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.a} onChange={e=>setPlacar({...placar,a:e.target.value})} placeholder="0"/>
-                              <span style={{ color:"#6b8a62" }}>x</span>
-                              <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.b} onChange={e=>setPlacar({...placar,b:e.target.value})} placeholder="0"/>
-                            </div>
-                          ) : (
-                            <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, color: m.status==='encerrado'?"#00C853":"#6b8a62" }}>
-                              {m.status==='encerrado' ? `${m.placar_a} x ${m.placar_b}` : '- x -'}
-                            </span>
-                          )}
-                        </td>
-                        <td style={s.td}>
-                          <span style={{ background: m.status==='encerrado'?"rgba(0,200,83,.12)":"rgba(255,255,255,.06)", color: m.status==='encerrado'?"#00C853":"#6b8a62", border: `1px solid ${m.status==='encerrado'?"rgba(0,200,83,.25)":"rgba(255,255,255,.1)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
-                            {m.status}
-                          </span>
-                        </td>
-                        <td style={s.td}>
-                          {m.status !== 'encerrado' && (
-                            editMatch===m.id ? (
-                              <div style={{ display:"flex", gap:6 }}>
-                                <button style={s.btn} onClick={()=>lancarResultado(m)} disabled={loading}>SALVAR</button>
-                                <button style={s.btnOut} onClick={()=>setEditMatch(null)}>X</button>
+                    {matches.map(m => {
+                      const { data, hora } = formatData(m.data_hora)
+                      return (
+                        <tr key={m.id}>
+                          <td style={s.td}>
+                            <div style={{ fontSize:13, fontWeight:600 }}>{data}</div>
+                            <div style={{ fontSize:12, color:"#6b8a62" }}>{hora}</div>
+                          </td>
+                          <td style={s.td}><strong>{m.team_a?.nome}</strong> vs <strong>{m.team_b?.nome}</strong></td>
+                          <td style={s.td}><span style={{ color:"#6b8a62" }}>{FASE_LABEL[m.fase]||m.fase}</span></td>
+                          <td style={s.td}>
+                            {editMatch===m.id ? (
+                              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                                <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.a} onChange={e=>setPlacar({...placar,a:e.target.value})} placeholder="0"/>
+                                <span style={{ color:"#6b8a62" }}>x</span>
+                                <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.b} onChange={e=>setPlacar({...placar,b:e.target.value})} placeholder="0"/>
                               </div>
                             ) : (
-                              <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:''}) }}>LANCAR</button>
-                            )
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, color: m.status==='encerrado'?"#00C853":"#6b8a62" }}>
+                                {m.status==='encerrado' ? `${m.placar_a} x ${m.placar_b}` : '- x -'}
+                              </span>
+                            )}
+                          </td>
+                          <td style={s.td}>
+                            <span style={{ background: m.status==='encerrado'?"rgba(0,200,83,.12)":"rgba(255,255,255,.06)", color: m.status==='encerrado'?"#00C853":"#6b8a62", border: `1px solid ${m.status==='encerrado'?"rgba(0,200,83,.25)":"rgba(255,255,255,.1)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
+                              {m.status}
+                            </span>
+                          </td>
+                          <td style={s.td}>
+                            {m.status !== 'encerrado' && (
+                              editMatch===m.id ? (
+                                <div style={{ display:"flex", gap:6 }}>
+                                  <button style={s.btn} onClick={()=>lancarResultado(m)} disabled={loading}>SALVAR</button>
+                                  <button style={s.btnOut} onClick={()=>setEditMatch(null)}>X</button>
+                                </div>
+                              ) : (
+                                <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:''}) }}>LANCAR</button>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
