@@ -117,7 +117,7 @@ export default function Admin() {
       await supabase.from('picks').delete().eq('user_id', modalUser.id)
 
       // Insere os novos picks
-      const inserts = modalPicks.map(t => ({ user_id: modalUser.id, team_id: t.id }))
+      const inserts = modalPicks.map((t, i) => ({ user_id: modalUser.id, team_id: t.id, ordem: i + 1 }))
       const { error } = await supabase.from('picks').insert(inserts)
 
       if (error) throw error
