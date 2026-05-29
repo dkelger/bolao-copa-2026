@@ -7,6 +7,7 @@ import Admin      from './pages/Admin'
 import Quiz       from './pages/Quiz'
 import Login      from './pages/Login'
 import MeusTimes  from './pages/MeusTimes'
+import Pagamento  from './pages/Pagamento'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/ranking"    element={<Ranking/>}/>
         <Route path="/admin"      element={<Admin/>}/>
         <Route path="/quiz"       element={<Quiz/>}/>
+        <Route path="/pagamento" element={<Pagamento/>}/>
         <Route path="*"           element={<Navigate to="/"/>}/>
         <Route path="/meus-times" element={<MeusTimes />} />
       </Routes>

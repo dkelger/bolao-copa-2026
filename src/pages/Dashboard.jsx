@@ -298,7 +298,7 @@ export default function Dashboard() {
                 Complete o pagamento para ativar sua inscrição.</div>
             </div>
             <button style={{...s.btn, background:"#FFD700"}}
-              onClick={()=>navigate('/inscricao')}>
+              onClick={()=>navigate('/pagamento')}>
               PAGAR AGORA
             </button>
           </div>
