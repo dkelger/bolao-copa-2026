@@ -12,7 +12,7 @@ const s = {
   input: { background:"rgba(255,255,255,.05)", border:"1.5px solid rgba(0,200,83,.16)", borderRadius:8, color:"#dff0d8", fontFamily:"'Barlow', sans-serif", fontSize:14, padding:"10px 14px", outline:"none" },
   tab: (active) => ({ fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"8px 18px", borderRadius:10, border: active?"none":"1px solid rgba(0,200,83,.16)", background: active?"#00C853":"transparent", color: active?"#080d0a":"#6b8a62", cursor:"pointer" }),
   th: { fontFamily:"'Barlow Condensed', sans-serif", fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"#6b8a62", padding:"10px 14px", textAlign:"left", borderBottom:"1px solid rgba(0,200,83,.16)" },
-  td: { padding:"12px 14px", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:14 },
+  td: { padding:"12px 14px", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:14, verticalAlign:"top" },
 }
 
 export default function Admin() {
@@ -20,6 +20,7 @@ export default function Admin() {
   const [tab, setTab] = useState('partidas')
   const [matches, setMatches] = useState([])
   const [users, setUsers] = useState([])
+  const [picks, setPicks] = useState([])
   const [quizzes, setQuizzes] = useState([])
   const [loading, setLoading] = useState(false)
   const [editMatch, setEditMatch] = useState(null)
@@ -44,17 +45,23 @@ export default function Admin() {
   }, [])
 
   async function loadAll() {
-    const [{ data: m }, { data: u }, { data: q }] = await Promise.all([
+    const [{ data: m }, { data: u }, { data: q }, { data: p }] = await Promise.all([
       supabase.from('matches').select('*, team_a:teams!matches_team_a_id_fkey(nome), team_b:teams!matches_team_b_id_fkey(nome)').order('data_hora'),
       supabase.from('users').select('*').order('created_at', { ascending: false }),
       supabase.from('quizzes').select('*').order('created_at', { ascending: false }),
+      supabase.from('picks').select('user_id, teams(nome)'),
     ])
     setMatches(m || [])
     setUsers(u || [])
     setQuizzes(q || [])
+    setPicks(p || [])
     const naoAdmin = (u || []).filter(x => x.status !== 'admin')
     const ativos = naoAdmin.filter(x => x.status === 'ativo').length
     setStats({ participantes: naoAdmin.length, arrecadado: ativos * 50, ativos })
+  }
+
+  function getPicksDoUsuario(userId) {
+    return picks.filter(p => p.user_id === userId)
   }
 
   async function lancarResultado(match) {
@@ -266,28 +273,45 @@ export default function Admin() {
                     <th style={s.th}>Nome</th>
                     <th style={s.th}>E-mail</th>
                     <th style={s.th}>WhatsApp</th>
+                    <th style={s.th}>Seleções</th>
                     <th style={s.th}>Status</th>
                     <th style={s.th}>Acao</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.filter(u => u.status !== 'admin').map(u => (
-                    <tr key={u.id}>
-                      <td style={s.td}><strong>{u.nome}</strong></td>
-                      <td style={s.td}><span style={{ color:"#6b8a62" }}>{u.email}</span></td>
-                      <td style={s.td}>{u.whatsapp || '-'}</td>
-                      <td style={s.td}>
-                        <span style={{ background: u.status==='ativo'?"rgba(0,200,83,.12)":"rgba(255,215,0,.1)", color: u.status==='ativo'?"#00C853":"#FFD700", border: `1px solid ${u.status==='ativo'?"rgba(0,200,83,.25)":"rgba(255,215,0,.25)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
-                          {u.status}
-                        </span>
-                      </td>
-                      <td style={s.td}>
-                        {u.status === 'pendente' && (
-                          <button style={s.btn} onClick={() => ativarUsuario(u.id)}>ATIVAR</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {users.filter(u => u.status !== 'admin').map(u => {
+                    const userPicks = getPicksDoUsuario(u.id)
+                    return (
+                      <tr key={u.id}>
+                        <td style={s.td}><strong>{u.nome}</strong></td>
+                        <td style={s.td}><span style={{ color:"#6b8a62" }}>{u.email}</span></td>
+                        <td style={s.td}>{u.whatsapp || '-'}</td>
+                        <td style={s.td}>
+                          {userPicks.length === 0 ? (
+                            <span style={{ color:"#ff7070", fontSize:12 }}>Sem seleções</span>
+                          ) : (
+                            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                              {userPicks.map((p, i) => (
+                                <span key={i} style={{ background:"rgba(0,200,83,.08)", border:"1px solid rgba(0,200,83,.2)", borderRadius:20, padding:"2px 10px", fontSize:12, color:"#00C853", fontWeight:600, display:"inline-block", whiteSpace:"nowrap" }}>
+                                  {p.teams?.nome}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td style={s.td}>
+                          <span style={{ background: u.status==='ativo'?"rgba(0,200,83,.12)":"rgba(255,215,0,.1)", color: u.status==='ativo'?"#00C853":"#FFD700", border: `1px solid ${u.status==='ativo'?"rgba(0,200,83,.25)":"rgba(255,215,0,.25)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
+                            {u.status}
+                          </span>
+                        </td>
+                        <td style={s.td}>
+                          {u.status === 'pendente' && (
+                            <button style={s.btn} onClick={() => ativarUsuario(u.id)}>ATIVAR</button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
