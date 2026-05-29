@@ -27,10 +27,8 @@ export default function Inscricao() {
   const [bonus, setBonus] = useState({ artilheiro:'', placar:'' })
 
   useEffect(() => {
-  const params = new URLSearchParams(window.location.search)
-  if (params.get('step') === '2') setStep(2)
-  supabase.from('teams').select('*').order('grupo').then(({ data }) => setTeams(data || []))
-}, [])
+    supabase.from('teams').select('*').order('grupo').then(({ data }) => setTeams(data || []))
+  }, [])
 
   const filtered = teams.filter(t => t.nome.toLowerCase().includes(search.toLowerCase()))
 
@@ -39,28 +37,47 @@ export default function Inscricao() {
     if (picks.length < 3) setPicks([...picks, t])
   }
 
-  const handleCadastro = async () => {
+  // Só valida os dados no step 1, não salva nada
+  const handleProximoStep1 = () => {
+    setError('')
+    if (!dados.nome) { setError('Preencha seu nome.'); return }
+    if (!dados.email) { setError('Preencha seu e-mail.'); return }
+    if (!dados.senha || dados.senha.length < 6) { setError('A senha deve ter no mínimo 6 caracteres.'); return }
+    setStep(2)
+  }
+
+  // Salva tudo junto: auth + users + picks, só quando tiver as 3 seleções
+  const handleFinalizarInscricao = async () => {
+    if (picks.length !== 3) { setError('Selecione exatamente 3 seleções.'); return }
     setLoading(true); setError('')
+
+    // 1. Cria conta no auth
     const { data, error: authError } = await supabase.auth.signUp({
       email: dados.email, password: dados.senha,
       options: { data: { nome: dados.nome, whatsapp: dados.whatsapp } }
     })
     if (authError) { setError(authError.message); setLoading(false); return }
+
+    const userId = data.user.id
+
+    // 2. Insere na tabela users
     const { error: userError } = await supabase.from('users').insert({
-      id: data.user.id, nome: dados.nome, email: dados.email, whatsapp: dados.whatsapp, status: 'pendente'
+      id: userId, nome: dados.nome, email: dados.email,
+      whatsapp: dados.whatsapp, status: 'pendente'
     })
     if (userError) { setError(userError.message); setLoading(false); return }
-    setLoading(false); setStep(2)
-  }
 
-  const handlePicks = async () => {
-    setLoading(true); setError('')
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Sessão expirada.'); setLoading(false); return }
-    const picksData = picks.map((t, i) => ({ user_id: user.id, team_id: t.id, ordem: i+1, palpite_artilheiro: bonus.artilheiro||null, palpite_placar_final: bonus.placar||null }))
+    // 3. Insere as picks
+    const picksData = picks.map((t, i) => ({
+      user_id: userId, team_id: t.id, ordem: i+1,
+      palpite_artilheiro: bonus.artilheiro || null,
+      palpite_placar_final: bonus.placar || null
+    }))
     const { error: pickError } = await supabase.from('picks').insert(picksData)
     if (pickError) { setError(pickError.message); setLoading(false); return }
-    setLoading(false); setStep(4)
+
+    setLoading(false)
+    setStep(4)
   }
 
   const handlePagamento = async () => {
@@ -79,7 +96,8 @@ export default function Inscricao() {
     }
   }
 
-  const STEPS = ['Seus dados', 'Escolha os times', 'Palpite bônus', 'Pagamento']
+  const STEPS = ['Seus dados', 'Escolha as seleções', 'Palpite bônus', 'Pagamento']
+
   return (
     <div style={s.wrap}>
       <div style={s.inner}>
@@ -100,6 +118,7 @@ export default function Inscricao() {
 
         {error&&<div style={{background:"rgba(255,70,70,.1)", border:"1px solid rgba(255,70,70,.3)", borderRadius:8, padding:"12px 16px", marginBottom:16, fontSize:14, color:"#ff7070"}}>{error}</div>}
 
+        {/* STEP 1 — Dados */}
         {step===1&&(
           <div style={s.card}>
             <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:20, fontWeight:700, marginBottom:20}}>Seus dados</div>
@@ -114,17 +133,18 @@ export default function Inscricao() {
                 <input style={s.input} type={f.type} placeholder={f.ph} value={dados[f.key]} onChange={e=>setDados({...dados,[f.key]:e.target.value})}/>
               </div>
             ))}
-            <button style={s.btn} onClick={handleCadastro} disabled={loading||!dados.nome||!dados.email||!dados.senha}>
-              {loading?'Criando conta...':'PRÓXIMO →'}
+            <button style={s.btn} onClick={handleProximoStep1} disabled={!dados.nome||!dados.email||!dados.senha}>
+              PRÓXIMO →
             </button>
           </div>
         )}
 
+        {/* STEP 2 — Seleções */}
         {step===2&&(
           <div>
             <div style={s.card}>
               <div style={{display:"flex", justifyContent:"space-between", marginBottom:14}}>
-                <span style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:20, fontWeight:700}}>Escolha 3 times</span>
+                <span style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:20, fontWeight:700}}>Escolha 3 seleções</span>
                 <span style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:28, fontWeight:900, color:"#00C853"}}>{picks.length}<span style={{color:"#6b8a62",fontSize:16}}>/3</span></span>
               </div>
               {picks.length>0&&(
@@ -155,13 +175,14 @@ export default function Inscricao() {
             </div>
             <div style={{display:"flex", gap:10}}>
               <button style={s.btnOut} onClick={()=>setStep(1)}>← VOLTAR</button>
-              <button style={{...s.btn, opacity:picks.length===3?1:.5}} onClick={()=>setStep(3)} disabled={picks.length!==3}>
+              <button style={{...s.btn, opacity:picks.length===3?1:.5}} onClick={()=>picks.length===3&&setStep(3)} disabled={picks.length!==3}>
                 {picks.length===3?'PRÓXIMO →':`Selecione ${picks.length}/3`}
               </button>
             </div>
           </div>
         )}
 
+        {/* STEP 3 — Palpite bônus */}
         {step===3&&(
           <div style={s.card}>
             <div style={{background:"rgba(255,215,0,.1)", border:"1px solid rgba(255,215,0,.25)", borderRadius:20, padding:"4px 14px", display:"inline-flex", alignItems:"center", gap:6, fontFamily:"'Barlow Condensed', sans-serif", fontSize:12, fontWeight:700, letterSpacing:1, color:"#FFD700", marginBottom:16}}>🎁 Opcional — sem custo extra</div>
@@ -178,15 +199,18 @@ export default function Inscricao() {
             ))}
             <div style={{display:"flex", gap:10}}>
               <button style={s.btnOut} onClick={()=>setStep(2)}>← VOLTAR</button>
-              <button style={s.btn} onClick={handlePicks} disabled={loading}>{loading?'Salvando...':'PRÓXIMO →'}</button>
+              <button style={s.btn} onClick={handleFinalizarInscricao} disabled={loading}>
+                {loading?'Salvando inscrição...':'FINALIZAR INSCRIÇÃO →'}
+              </button>
             </div>
           </div>
         )}
 
+        {/* STEP 4 — Pagamento */}
         {step===4&&(
           <div style={s.card}>
             <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:22, fontWeight:700, marginBottom:4}}>Pagamento PIX</div>
-            <p style={{fontSize:14, color:"#6b8a62", marginBottom:20}}>Você será redirecionado para o Mercado Pago para concluir o pagamento via PIX.</p>
+            <p style={{fontSize:14, color:"#6b8a62", marginBottom:20}}>Sua inscrição foi salva! Agora conclua o pagamento para ativar sua participação.</p>
             <div style={{background:"#141f10", border:"1.5px dashed rgba(0,200,83,.35)", borderRadius:14, padding:24, textAlign:"center", marginBottom:16}}>
               <div style={{fontSize:64, marginBottom:12}}>⚽</div>
               <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:40, fontWeight:900, color:"#00C853", marginBottom:4}}>R$ 50,00</div>
