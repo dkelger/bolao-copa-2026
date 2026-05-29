@@ -9,10 +9,13 @@ const s = {
   btn: { background:"#00C853", color:"#080d0a", border:"none", borderRadius:10, fontFamily:"'Barlow Condensed', sans-serif", fontSize:14, fontWeight:700, letterSpacing:1.5, padding:"10px 20px", cursor:"pointer" },
   btnRed: { background:"rgba(255,70,70,.15)", color:"#ff7070", border:"1px solid rgba(255,70,70,.3)", borderRadius:10, fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700, padding:"8px 16px", cursor:"pointer" },
   btnOut: { background:"transparent", color:"#6b8a62", border:"1px solid rgba(255,255,255,.1)", borderRadius:10, fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700, padding:"8px 16px", cursor:"pointer" },
+  btnYellow: { background:"rgba(255,215,0,.15)", color:"#FFD700", border:"1px solid rgba(255,215,0,.3)", borderRadius:10, fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700, padding:"8px 16px", cursor:"pointer" },
   input: { background:"rgba(255,255,255,.05)", border:"1.5px solid rgba(0,200,83,.16)", borderRadius:8, color:"#dff0d8", fontFamily:"'Barlow', sans-serif", fontSize:14, padding:"10px 14px", outline:"none" },
   tab: (active) => ({ fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700, letterSpacing:1, textTransform:"uppercase", padding:"8px 18px", borderRadius:10, border: active?"none":"1px solid rgba(0,200,83,.16)", background: active?"#00C853":"transparent", color: active?"#080d0a":"#6b8a62", cursor:"pointer" }),
   th: { fontFamily:"'Barlow Condensed', sans-serif", fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"#6b8a62", padding:"10px 14px", textAlign:"left", borderBottom:"1px solid rgba(0,200,83,.16)" },
   td: { padding:"12px 14px", borderBottom:"1px solid rgba(255,255,255,.05)", fontSize:14, verticalAlign:"top" },
+  overlay: { position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:24 },
+  modal: { background:"#1a2418", border:"1px solid rgba(0,200,83,.25)", borderRadius:16, padding:28, width:"100%", maxWidth:520, maxHeight:"90vh", overflowY:"auto" },
 }
 
 export default function Admin() {
@@ -22,6 +25,7 @@ export default function Admin() {
   const [users, setUsers] = useState([])
   const [picks, setPicks] = useState([])
   const [quizzes, setQuizzes] = useState([])
+  const [allTeams, setAllTeams] = useState([])
   const [loading, setLoading] = useState(false)
   const [editMatch, setEditMatch] = useState(null)
   const [placar, setPlacar] = useState({ a:'', b:'' })
@@ -30,6 +34,13 @@ export default function Admin() {
   const [notif, setNotif] = useState({ titulo:'', mensagem:'' })
   const [stats, setStats] = useState({ participantes:0, arrecadado:0, ativos:0 })
   const [autorizado, setAutorizado] = useState(null)
+
+  // Modal inscrever seleções
+  const [modalUser, setModalUser] = useState(null) // { id, nome }
+  const [modalPicks, setModalPicks] = useState([]) // teams selecionados no modal
+  const [teamSearch, setTeamSearch] = useState('')
+  const [savingPicks, setSavingPicks] = useState(false)
+  const [pickError, setPickError] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -45,16 +56,18 @@ export default function Admin() {
   }, [])
 
   async function loadAll() {
-    const [{ data: m }, { data: u }, { data: q }, { data: p }] = await Promise.all([
+    const [{ data: m }, { data: u }, { data: q }, { data: p }, { data: t }] = await Promise.all([
       supabase.from('matches').select('*, team_a:teams!matches_team_a_id_fkey(nome), team_b:teams!matches_team_b_id_fkey(nome)').order('data_hora'),
       supabase.from('users').select('*').order('created_at', { ascending: false }),
       supabase.from('quizzes').select('*').order('created_at', { ascending: false }),
       supabase.from('picks').select('user_id, teams(nome)'),
+      supabase.from('teams').select('*').order('grupo'),
     ])
     setMatches(m || [])
     setUsers(u || [])
     setQuizzes(q || [])
     setPicks(p || [])
+    setAllTeams(t || [])
     const naoAdmin = (u || []).filter(x => x.status !== 'admin')
     const ativos = naoAdmin.filter(x => x.status === 'ativo').length
     setStats({ participantes: naoAdmin.length, arrecadado: ativos * 50, ativos })
@@ -62,6 +75,60 @@ export default function Admin() {
 
   function getPicksDoUsuario(userId) {
     return picks.filter(p => p.user_id === userId)
+  }
+
+  function abrirModalInscrever(user) {
+    setModalUser(user)
+    setModalPicks([])
+    setTeamSearch('')
+    setPickError('')
+  }
+
+  function fecharModal() {
+    setModalUser(null)
+    setModalPicks([])
+    setTeamSearch('')
+    setPickError('')
+  }
+
+  function toggleModalPick(team) {
+    const jaEsta = modalPicks.find(t => t.id === team.id)
+    if (jaEsta) {
+      setModalPicks(modalPicks.filter(t => t.id !== team.id))
+    } else {
+      if (modalPicks.length >= 3) {
+        setPickError('Máximo de 3 seleções permitido.')
+        return
+      }
+      setModalPicks([...modalPicks, team])
+      setPickError('')
+    }
+  }
+
+  async function salvarPicksAdmin() {
+    if (modalPicks.length !== 3) {
+      setPickError('Escolha exatamente 3 seleções.')
+      return
+    }
+    setSavingPicks(true)
+    setPickError('')
+    try {
+      // Remove picks anteriores do usuário (caso tenha algum)
+      await supabase.from('picks').delete().eq('user_id', modalUser.id)
+
+      // Insere os novos picks
+      const inserts = modalPicks.map(t => ({ user_id: modalUser.id, team_id: t.id }))
+      const { error } = await supabase.from('picks').insert(inserts)
+
+      if (error) throw error
+
+      fecharModal()
+      await loadAll()
+    } catch (err) {
+      setPickError('Erro ao salvar: ' + err.message)
+    } finally {
+      setSavingPicks(false)
+    }
   }
 
   async function lancarResultado(match) {
@@ -143,6 +210,10 @@ export default function Admin() {
       hora: d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
     }
   }
+
+  const teamsFiltered = allTeams.filter(t =>
+    t.nome.toLowerCase().includes(teamSearch.toLowerCase())
+  )
 
   if (autorizado === null) return (
     <div style={{background:'#080d0a', minHeight:'100vh', display:'flex',
@@ -281,13 +352,14 @@ export default function Admin() {
                 <tbody>
                   {users.filter(u => u.status !== 'admin').map(u => {
                     const userPicks = getPicksDoUsuario(u.id)
+                    const semSelecoes = userPicks.length === 0
                     return (
                       <tr key={u.id}>
                         <td style={s.td}><strong>{u.nome}</strong></td>
                         <td style={s.td}><span style={{ color:"#6b8a62" }}>{u.email}</span></td>
                         <td style={s.td}>{u.whatsapp || '-'}</td>
                         <td style={s.td}>
-                          {userPicks.length === 0 ? (
+                          {semSelecoes ? (
                             <span style={{ color:"#ff7070", fontSize:12 }}>Sem seleções</span>
                           ) : (
                             <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
@@ -305,9 +377,16 @@ export default function Admin() {
                           </span>
                         </td>
                         <td style={s.td}>
-                          {u.status === 'pendente' && (
-                            <button style={s.btn} onClick={() => ativarUsuario(u.id)}>ATIVAR</button>
-                          )}
+                          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                            {u.status === 'pendente' && (
+                              <button style={s.btn} onClick={() => ativarUsuario(u.id)}>ATIVAR</button>
+                            )}
+                            {semSelecoes && (
+                              <button style={s.btnYellow} onClick={() => abrirModalInscrever(u)}>
+                                + INSCREVER
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -391,6 +470,97 @@ export default function Admin() {
         )}
 
       </div>
+
+      {/* MODAL INSCREVER SELEÇÕES */}
+      {modalUser && (
+        <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) fecharModal() }}>
+          <div style={s.modal}>
+
+            {/* Cabeçalho */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+              <div>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:"#6b8a62", marginBottom:4 }}>INSCREVENDO SELEÇÕES PARA</div>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:22, fontWeight:700, color:"#dff0d8" }}>{modalUser.nome}</div>
+              </div>
+              <button style={{ background:"none", border:"none", color:"#6b8a62", fontSize:22, cursor:"pointer", lineHeight:1 }} onClick={fecharModal}>✕</button>
+            </div>
+
+            {/* Selecionadas */}
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:12, color:"#6b8a62", fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>
+                Selecionadas ({modalPicks.length}/3)
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap", minHeight:36 }}>
+                {modalPicks.length === 0 ? (
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,.2)" }}>Nenhuma seleção escolhida ainda</span>
+                ) : modalPicks.map(t => (
+                  <span key={t.id}
+                    onClick={() => toggleModalPick(t)}
+                    style={{ background:"rgba(0,200,83,.15)", border:"1px solid rgba(0,200,83,.4)", borderRadius:20, padding:"4px 12px", fontSize:13, color:"#00C853", fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+                    {t.nome} <span style={{ opacity:.6, fontSize:11 }}>✕</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Busca */}
+            <input
+              style={{ ...s.input, width:"100%", marginBottom:12, boxSizing:"border-box" }}
+              placeholder="Buscar seleção..."
+              value={teamSearch}
+              onChange={e => { setTeamSearch(e.target.value); setPickError('') }}
+            />
+
+            {/* Lista de times */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, maxHeight:280, overflowY:"auto", marginBottom:16 }}>
+              {teamsFiltered.map(t => {
+                const selecionado = !!modalPicks.find(p => p.id === t.id)
+                const desabilitado = !selecionado && modalPicks.length >= 3
+                return (
+                  <div key={t.id}
+                    onClick={() => !desabilitado && toggleModalPick(t)}
+                    style={{
+                      background: selecionado ? "rgba(0,200,83,.15)" : "rgba(255,255,255,.04)",
+                      border: `1.5px solid ${selecionado ? "rgba(0,200,83,.5)" : "rgba(255,255,255,.08)"}`,
+                      borderRadius:10,
+                      padding:"10px 14px",
+                      cursor: desabilitado ? "not-allowed" : "pointer",
+                      opacity: desabilitado ? 0.4 : 1,
+                      display:"flex",
+                      alignItems:"center",
+                      justifyContent:"space-between",
+                      transition:"all .15s"
+                    }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color: selecionado ? "#00C853" : "#dff0d8" }}>{t.nome}</div>
+                      {t.grupo && <div style={{ fontSize:11, color:"#6b8a62" }}>Grupo {t.grupo}</div>}
+                    </div>
+                    {selecionado && <span style={{ color:"#00C853", fontSize:16 }}>✓</span>}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Erro */}
+            {pickError && (
+              <div style={{ color:"#ff7070", fontSize:13, marginBottom:12 }}>{pickError}</div>
+            )}
+
+            {/* Ações */}
+            <div style={{ display:"flex", gap:10 }}>
+              <button style={{ ...s.btnOut, flex:1 }} onClick={fecharModal}>CANCELAR</button>
+              <button
+                style={{ ...s.btn, flex:2, opacity: modalPicks.length !== 3 ? 0.5 : 1 }}
+                onClick={salvarPicksAdmin}
+                disabled={savingPicks || modalPicks.length !== 3}>
+                {savingPicks ? 'SALVANDO...' : `CONFIRMAR ${modalPicks.length === 3 ? '✓' : `(${modalPicks.length}/3)`}`}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
