@@ -14,10 +14,12 @@ export default function Ranking() {
   const navigate = useNavigate()
   const [ranking, setRanking] = useState([])
   const [loading, setLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState(null)
 
   useEffect(()=>{
     supabase.auth.getSession().then(({ data }) => {
       if (!data?.session) { navigate('/login'); return }
+      setCurrentUserId(data.session.user.id)
       loadRanking()
       const interval = setInterval(loadRanking, 30000)
       return () => clearInterval(interval)
@@ -25,10 +27,11 @@ export default function Ranking() {
   },[])
 
   async function loadRanking() {
+    // Busca todos os usuários exceto admin
     const { data: users } = await supabase
       .from('users')
-      .select('id, nome')
-      .eq('status', 'ativo')
+      .select('id, nome, status')
+      .neq('status', 'admin')
 
     if (!users) { setLoading(false); return }
 
@@ -37,7 +40,7 @@ export default function Ranking() {
       .select('user_id, pontos')
 
     const map = {}
-    users.forEach(u => { map[u.id] = { nome: u.nome, total: 0 } })
+    users.forEach(u => { map[u.id] = { nome: u.nome, status: u.status, total: 0 } })
     ;(pts || []).forEach(row => {
       if (map[row.user_id]) map[row.user_id].total += Number(row.pontos)
     })
@@ -76,38 +79,49 @@ export default function Ranking() {
           <div style={s.card}>
             <div style={{padding:"32px 24px", textAlign:"center", color:"#6b8a62"}}>
               <div style={{fontSize:40, marginBottom:12}}>⚽</div>
-              <p>Nenhum participante ativo ainda.</p>
+              <p>Nenhum participante cadastrado ainda.</p>
             </div>
           </div>
         ) : (
           <div style={s.card}>
-            {ranking.map((r,i)=>(
-              <div key={r.id}>
-                <div style={{display:"flex", alignItems:"center", gap:14,
-                  padding:"13px 20px", borderRadius:10}}>
-                  <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:22,
-                    fontWeight:900, minWidth:36, textAlign:"center",
-                    color:i===0?"#FFD700":i===1?"#b0b0b0":i===2?"#cd7f32":"#6b8a62"}}>
-                    {i<3 ? medals[i] : i+1}
+            {ranking.map((r,i)=>{
+              const isMe = r.id === currentUserId
+              return (
+                <div key={r.id}>
+                  <div style={{display:"flex", alignItems:"center", gap:14,
+                    padding:"13px 20px", borderRadius:10,
+                    background: isMe ? "rgba(0,200,83,.06)" : "transparent"}}>
+                    <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:22,
+                      fontWeight:900, minWidth:36, textAlign:"center",
+                      color:i===0?"#FFD700":i===1?"#b0b0b0":i===2?"#cd7f32":"#6b8a62"}}>
+                      {i<3 ? medals[i] : i+1}
+                    </div>
+                    <div style={{width:40, height:40, borderRadius:"50%",
+                      background: isMe ? "rgba(0,200,83,.2)" : "#1f2d1b",
+                      border:`2px solid ${isMe ? "rgba(0,200,83,.6)" : "rgba(0,200,83,.2)"}`,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:18, flexShrink:0}}>
+                      {r.nome?.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:15, fontWeight:600, color: isMe ? "#00C853" : "#dff0d8"}}>
+                        {r.nome} {isMe && <span style={{fontSize:11, opacity:.7}}>(você)</span>}
+                      </div>
+                      {r.status === 'pendente' && (
+                        <div style={{fontSize:11, color:"#FFD700", marginTop:2}}>pagamento pendente</div>
+                      )}
+                    </div>
+                    <div style={{fontFamily:"'Barlow Condensed', sans-serif",
+                      fontSize:28, fontWeight:900,
+                      color: isMe ? "#00C853" : r.total > 0 ? "#dff0d8" : "#6b8a62"}}>
+                      {r.total.toFixed(1)}
+                    </div>
                   </div>
-                  <div style={{width:40, height:40, borderRadius:"50%",
-                    background:"#1f2d1b", border:"2px solid rgba(0,200,83,.2)",
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:18, flexShrink:0}}>
-                    {r.nome?.charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:15, fontWeight:600}}>{r.nome}</div>
-                  </div>
-                  <div style={{fontFamily:"'Barlow Condensed', sans-serif",
-                    fontSize:28, fontWeight:900, color:"#00C853"}}>
-                    {r.total.toFixed(1)}
-                  </div>
+                  {i<ranking.length-1&&<div style={{height:1,
+                    background:"rgba(255,255,255,.04)", margin:"0 16px"}}/>}
                 </div>
-                {i<ranking.length-1&&<div style={{height:1,
-                  background:"rgba(255,255,255,.04)", margin:"0 16px"}}/>}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
