@@ -235,7 +235,7 @@ export default function Landing() {
           <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
             color:"white", letterSpacing:3, margin:0}}>COMO FUNCIONA</h2>
         </div>
-        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:20}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:20}}>
           {[
             { n:"01", emoji:"💰", titulo:"Inscreva-se", desc:"Pague R$ 50 via PIX e garanta sua vaga no bolão dos amigos." },
             { n:"02", emoji:"🏳️", titulo:"Escolha 3 seleções", desc:"Selecione 3 seleções que você acredita que podem ir longe." },
