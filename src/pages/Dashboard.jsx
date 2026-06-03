@@ -18,6 +18,7 @@ const BANDEIRAS = {
 }
 
 const ADMINS = ['dkelger@gmail.com', 'diego_admin@bolao2026.com']
+const WHATSAPP_GROUP = 'https://chat.whatsapp.com/HobZDtjdCzjBnY8ezc8xXu?s=cl&p=a&mlu=1'
 
 const s = {
   wrap: { background:"#080d0a", minHeight:"100vh", color:"#dff0d8",
@@ -82,7 +83,6 @@ export default function Dashboard() {
       setRanking({ pos: pos+1, total: map[user.id] || 0, count: sorted.length })
     }
 
-    // Busca fundo de prêmios
     const { data: users } = await supabase
       .from('users').select('status').neq('status', 'admin')
     if (users) {
@@ -96,7 +96,6 @@ export default function Dashboard() {
       })
     }
 
-    // Verifica se tem quiz não respondido
     const agora = new Date().toISOString()
     const { data: quizzes } = await supabase
       .from('quizzes')
@@ -147,17 +146,12 @@ export default function Dashboard() {
           </div>
           <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap"}}>
             <button style={s.btnOut} onClick={()=>navigate('/ranking')}>CLASSIFICAÇÃO</button>
-            <button
-              style={{...s.btnOut, position:"relative"}}
-              onClick={()=>navigate('/quiz')}>
+            <button style={{...s.btnOut, position:"relative"}} onClick={()=>navigate('/quiz')}>
               QUIZZES
               {quizPendente && (
-                <span style={{
-                  position:"absolute", top:-6, right:-6,
+                <span style={{position:"absolute", top:-6, right:-6,
                   background:"#ff4444", borderRadius:"50%",
-                  width:10, height:10, display:"block",
-                  border:"2px solid #080d0a"
-                }}/>
+                  width:10, height:10, display:"block", border:"2px solid #080d0a"}}/>
               )}
             </button>
             {ADMINS.includes(user?.email) && (
@@ -201,6 +195,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* STATS */}
         <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",
           gap:12, marginBottom:20}}>
           {[
@@ -218,6 +213,7 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* SELEÇÕES */}
         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
           fontWeight:700, letterSpacing:2, textTransform:"uppercase",
           color:"#6b8a62", marginBottom:12}}>MINHAS SELEÇÕES</div>
@@ -262,6 +258,46 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* BANNER GRUPO WHATSAPP — só para ativos */}
+        {profile?.status === 'ativo' && (
+          <a
+            href={WHATSAPP_GROUP}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{textDecoration:"none", display:"block", marginBottom:16}}>
+            <div style={{
+              background:"linear-gradient(135deg, rgba(37,211,102,.12), rgba(37,211,102,.06))",
+              border:"1px solid rgba(37,211,102,.3)",
+              borderRadius:14, padding:"18px 24px",
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              flexWrap:"wrap", gap:12,
+              transition:"border-color .2s, background .2s",
+              cursor:"pointer"
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor="rgba(37,211,102,.6)"}
+            onMouseLeave={e => e.currentTarget.style.borderColor="rgba(37,211,102,.3)"}>
+              <div style={{display:"flex", alignItems:"center", gap:14}}>
+                <div style={{fontSize:36, lineHeight:1}}>💬</div>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:16,
+                    fontWeight:700, color:"#25D366", letterSpacing:1, marginBottom:3}}>
+                    GRUPO DO WHATSAPP
+                  </div>
+                  <div style={{fontSize:13, color:"#6b8a62"}}>
+                    Entre no grupo dos participantes do Bolão do DK Copa 2026
+                  </div>
+                </div>
+              </div>
+              <div style={{background:"#25D366", color:"#080d0a", borderRadius:10,
+                fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700,
+                letterSpacing:1.5, padding:"10px 20px", whiteSpace:"nowrap"}}>
+                ENTRAR NO GRUPO →
+              </div>
+            </div>
+          </a>
+        )}
+
+        {/* HISTÓRICO */}
         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
           fontWeight:700, letterSpacing:2, textTransform:"uppercase",
           color:"#6b8a62", marginBottom:12}}>HISTÓRICO DE PONTOS</div>
@@ -287,6 +323,7 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* PAGAMENTO PENDENTE */}
         {profile?.status === 'pendente' && (
           <div style={{background:"rgba(255,215,0,.07)", border:"1px solid rgba(255,215,0,.2)",
             borderRadius:14, padding:"20px 24px", marginTop:8,
