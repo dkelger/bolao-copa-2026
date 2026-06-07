@@ -2,10 +2,27 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 
+const BANDEIRAS = {
+  'México':'🇲🇽','África do Sul':'🇿🇦','Coreia do Sul':'🇰🇷','República Tcheca':'🇨🇿',
+  'Canadá':'🇨🇦','Catar':'🇶🇦','Suíça':'🇨🇭','Itália':'🇮🇹',
+  'Brasil':'🇧🇷','Marrocos':'🇲🇦','Haiti':'🇭🇹','Escócia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Estados Unidos':'🇺🇸','Paraguai':'🇵🇾','Austrália':'🇦🇺','Turquia':'🇹🇷',
+  'Alemanha':'🇩🇪','Curaçao':'🇨🇼','Costa do Marfim':'🇨🇮','Equador':'🇪🇨',
+  'Holanda':'🇳🇱','Japão':'🇯🇵','Tunísia':'🇹🇳','Ucrânia':'🇺🇦',
+  'Bélgica':'🇧🇪','Egito':'🇪🇬','Irã':'🇮🇷','Nova Zelândia':'🇳🇿',
+  'Espanha':'🇪🇸','Cabo Verde':'🇨🇻','Arábia Saudita':'🇸🇦','Uruguai':'🇺🇾',
+  'França':'🇫🇷','Senegal':'🇸🇳','Noruega':'🇳🇴','Iraque':'🇮🇶',
+  'Argentina':'🇦🇷','Argélia':'🇩🇿','Áustria':'🇦🇹','Jordânia':'🇯🇴',
+  'Portugal':'🇵🇹','Uzbequistão':'🇺🇿','Colômbia':'🇨🇴','RD Congo':'🇨🇩',
+  'Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croácia':'🇭🇷','Gana':'🇬🇭','Panamá':'🇵🇦'
+}
+
 export default function Landing() {
   const navigate = useNavigate()
   const [participantes, setParticipantes] = useState(null)
   const [premio, setPremio] = useState({ total: 0, primeiro: 0, segundo: 0, terceiro: 0 })
+  const [partidas, setPartidas] = useState([])
+  const [grupoAtivo, setGrupoAtivo] = useState('todos')
 
   useEffect(() => {
     supabase
@@ -24,7 +41,29 @@ export default function Landing() {
           terceiro: Math.round(fundo * 0.15),
         })
       })
+
+    supabase
+      .from('matches')
+      .select('*, team_a:teams!matches_team_a_id_fkey(nome, grupo), team_b:teams!matches_team_b_id_fkey(nome, grupo)')
+      .eq('fase', 'grupos')
+      .order('data_hora')
+      .then(({ data }) => setPartidas(data || []))
   }, [])
+
+  const grupos = ['todos', ...Array.from(new Set(partidas.map(p => p.team_a?.grupo).filter(Boolean))).sort()]
+
+  const partidasFiltradas = grupoAtivo === 'todos'
+    ? partidas
+    : partidas.filter(p => p.team_a?.grupo === grupoAtivo || p.team_b?.grupo === grupoAtivo)
+
+  const formatData = (dt) => {
+    const d = new Date(dt)
+    return {
+      data: d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }),
+      hora: d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }),
+      diaSemana: d.toLocaleDateString('pt-BR', { weekday:'short' }).replace('.','')
+    }
+  }
 
   return (
     <div style={{background:"#060b08", color:"#dff0d8", fontFamily:"'Barlow', sans-serif", overflowX:"hidden"}}>
@@ -38,10 +77,6 @@ export default function Landing() {
           0%,100% { opacity:1; }
           50% { opacity:.5; }
         }
-        @keyframes shimmer {
-          0%   { background-position: -400px 0; }
-          100% { background-position: 400px 0; }
-        }
         @keyframes float {
           0%,100% { transform: translateY(0px); }
           50%      { transform: translateY(-8px); }
@@ -52,6 +87,10 @@ export default function Landing() {
         .card-how { transition: all .2s ease; }
         .nav-btn:hover { background: rgba(0,200,83,.1) !important; }
         .nav-btn { transition: background .2s; }
+        .match-card:hover { border-color: rgba(0,200,83,.3) !important; background: rgba(0,200,83,.04) !important; }
+        .match-card { transition: all .15s ease; }
+        .grupo-tab:hover { color: #dff0d8 !important; }
+        .grupo-tab { transition: all .15s; }
       `}</style>
 
       {/* NAVBAR */}
@@ -96,8 +135,6 @@ export default function Landing() {
       <section style={{minHeight:"100vh", display:"flex", flexDirection:"column",
         alignItems:"center", justifyContent:"center", textAlign:"center",
         padding:"120px 24px 80px", position:"relative"}}>
-
-        {/* Fundo decorativo */}
         <div style={{position:"absolute", inset:0, overflow:"hidden", pointerEvents:"none"}}>
           <div style={{position:"absolute", top:"20%", left:"50%", transform:"translateX(-50%)",
             width:600, height:600, borderRadius:"50%",
@@ -108,7 +145,6 @@ export default function Landing() {
             background:"linear-gradient(to bottom, transparent, rgba(0,200,83,.2), transparent)"}}/>
         </div>
 
-        {/* Badge */}
         <div style={{animation:"fadeUp .6s ease both", background:"rgba(0,200,83,.08)",
           border:"1px solid rgba(0,200,83,.2)", borderRadius:20,
           padding:"6px 20px", fontSize:12, fontWeight:700,
@@ -118,7 +154,6 @@ export default function Landing() {
           Copa do Mundo 2026 — México · EUA · Canadá
         </div>
 
-        {/* Título principal */}
         <div style={{animation:"fadeUp .7s .1s ease both", marginBottom:8}}>
           <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:"clamp(14px,2.5vw,20px)",
             fontWeight:700, letterSpacing:4, color:"#6b8a62", textTransform:"uppercase", marginBottom:4}}>
@@ -131,16 +166,15 @@ export default function Landing() {
           </h1>
           <h2 style={{fontFamily:"'Bebas Neue', sans-serif",
             fontSize:"clamp(36px,6vw,72px)", color:"#dff0d8",
-            lineHeight:1, letterSpacing:5, margin:"8px 0 0",
-            opacity:.7}}>COPA DO MUNDO 2026</h2>
+            lineHeight:1, letterSpacing:5, margin:"8px 0 0", opacity:.7}}>
+            COPA DO MUNDO 2026
+          </h2>
         </div>
 
-        {/* Divisor */}
         <div style={{animation:"fadeUp .7s .2s ease both", width:80, height:3,
           background:"linear-gradient(to right, transparent, #00C853, transparent)",
           borderRadius:2, margin:"28px auto"}}/>
 
-        {/* PRÊMIO */}
         {premio.total > 0 && (
           <div style={{animation:"fadeUp .7s .3s ease both",
             background:"linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,215,0,.04))",
@@ -174,8 +208,7 @@ export default function Landing() {
         )}
 
         <p style={{animation:"fadeUp .7s .4s ease both",
-          fontSize:17, color:"#6b8a62", maxWidth:480,
-          lineHeight:1.9, marginBottom:44}}>
+          fontSize:17, color:"#6b8a62", maxWidth:480, lineHeight:1.9, marginBottom:44}}>
           Escolha 3 seleções, acompanhe cada jogo, responda quizzes e dispute o prêmio com os amigos em tempo real.
         </p>
 
@@ -195,7 +228,6 @@ export default function Landing() {
           </button>
         </div>
 
-        {/* Scroll hint */}
         <div style={{position:"absolute", bottom:32, left:"50%", transform:"translateX(-50%)",
           display:"flex", flexDirection:"column", alignItems:"center", gap:6,
           color:"#6b8a62", fontSize:11, letterSpacing:2, textTransform:"uppercase",
@@ -225,6 +257,125 @@ export default function Landing() {
           ))}
         </div>
       </div>
+
+      {/* JOGOS DA FASE DE GRUPOS */}
+      {partidas.length > 0 && (
+        <section style={{padding:"80px 24px", maxWidth:960, margin:"0 auto"}}>
+          <div style={{textAlign:"center", marginBottom:40}}>
+            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
+              fontWeight:700, letterSpacing:3, color:"#00C853",
+              textTransform:"uppercase", marginBottom:8}}>calendário</div>
+            <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
+              color:"white", letterSpacing:3, margin:"0 0 24px"}}>FASE DE GRUPOS</h2>
+
+            {/* Filtro por grupo */}
+            <div style={{display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap"}}>
+              {grupos.map(g => (
+                <button key={g} className="grupo-tab"
+                  onClick={() => setGrupoAtivo(g)}
+                  style={{
+                    fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
+                    fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
+                    padding:"6px 16px", borderRadius:20, cursor:"pointer",
+                    border: grupoAtivo === g ? "none" : "1px solid rgba(0,200,83,.16)",
+                    background: grupoAtivo === g ? "#00C853" : "transparent",
+                    color: grupoAtivo === g ? "#080d0a" : "#6b8a62",
+                  }}>
+                  {g === 'todos' ? 'Todos' : `Grupo ${g}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:12}}>
+            {partidasFiltradas.map(m => {
+              const { data, hora, diaSemana } = formatData(m.data_hora)
+              const encerrado = m.status === 'encerrado'
+              const flagA = BANDEIRAS[m.team_a?.nome] || '🏴'
+              const flagB = BANDEIRAS[m.team_b?.nome] || '🏴'
+              return (
+                <div key={m.id} className="match-card" style={{
+                  background:"#0d1a0d",
+                  border:`1px solid ${encerrado ? "rgba(0,200,83,.2)" : "rgba(255,255,255,.07)"}`,
+                  borderRadius:14, padding:"16px 20px",
+                }}>
+                  {/* Cabeçalho */}
+                  <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14}}>
+                    <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
+                      fontWeight:700, letterSpacing:1.5, color:"#6b8a62", textTransform:"uppercase"}}>
+                      Grupo {m.team_a?.grupo}
+                    </div>
+                    <div style={{display:"flex", alignItems:"center", gap:6}}>
+                      {encerrado ? (
+                        <span style={{background:"rgba(0,200,83,.12)", color:"#00C853",
+                          border:"1px solid rgba(0,200,83,.25)", borderRadius:20,
+                          padding:"2px 10px", fontSize:11, fontWeight:700}}>
+                          Encerrado
+                        </span>
+                      ) : (
+                        <span style={{background:"rgba(255,255,255,.05)", color:"#6b8a62",
+                          border:"1px solid rgba(255,255,255,.08)", borderRadius:20,
+                          padding:"2px 10px", fontSize:11, fontWeight:700}}>
+                          {diaSemana} {data} · {hora}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Placar / Times */}
+                  <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:8}}>
+                    {/* Time A */}
+                    <div style={{flex:1, textAlign:"center"}}>
+                      <div style={{fontSize:28, marginBottom:4}}>{flagA}</div>
+                      <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:14,
+                        fontWeight:700, color:"#dff0d8", lineHeight:1.2}}>
+                        {m.team_a?.nome}
+                      </div>
+                    </div>
+
+                    {/* Placar */}
+                    <div style={{textAlign:"center", minWidth:64}}>
+                      {encerrado ? (
+                        <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:36,
+                          color:"#00C853", letterSpacing:2, lineHeight:1}}>
+                          {m.placar_a} <span style={{color:"rgba(0,200,83,.4)"}}>×</span> {m.placar_b}
+                        </div>
+                      ) : (
+                        <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:28,
+                          color:"rgba(255,255,255,.15)", letterSpacing:2}}>
+                          VS
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Time B */}
+                    <div style={{flex:1, textAlign:"center"}}>
+                      <div style={{fontSize:28, marginBottom:4}}>{flagB}</div>
+                      <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:14,
+                        fontWeight:700, color:"#dff0d8", lineHeight:1.2}}>
+                        {m.team_b?.nome}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Data para jogos futuros */}
+                  {!encerrado && (
+                    <div style={{textAlign:"center", marginTop:12, fontSize:12, color:"#3a5a3a"}}>
+                      ⏰ {diaSemana} {data} às {hora}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {partidasFiltradas.length === 0 && (
+            <div style={{textAlign:"center", color:"#6b8a62", padding:"40px 0"}}>
+              Nenhuma partida encontrada para este grupo.
+            </div>
+          )}
+        </section>
+      )}
 
       {/* COMO FUNCIONA */}
       <section style={{padding:"90px 24px", maxWidth:900, margin:"0 auto"}}>
@@ -310,7 +461,6 @@ export default function Landing() {
             width:700, height:400, borderRadius:"50%",
             background:"radial-gradient(ellipse, rgba(0,200,83,.05) 0%, transparent 70%)"}}/>
         </div>
-
         <div style={{background:"rgba(0,200,83,.08)", border:"1px solid rgba(0,200,83,.2)",
           borderRadius:20, padding:"6px 20px", fontSize:11, fontWeight:700,
           letterSpacing:3, color:"#00C853", textTransform:"uppercase",
@@ -323,7 +473,6 @@ export default function Landing() {
         <h3 style={{fontFamily:"'Bebas Neue', sans-serif",
           fontSize:"clamp(50px,8vw,90px)", color:"#FFD700",
           lineHeight:.85, letterSpacing:4, margin:"0 0 32px"}}>SUA VAGA</h3>
-
         <div style={{background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)",
           borderRadius:12, padding:"16px 32px", display:"inline-block", marginBottom:40}}>
           <p style={{color:"#6b8a62", fontSize:14, margin:"0 0 8px"}}>
@@ -334,7 +483,6 @@ export default function Landing() {
             {" "}até o início das Oitavas — mesmo sem seleção classificada.
           </p>
         </div>
-
         <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:12}}>
           <button className="hero-btn" onClick={()=>navigate('/inscricao')}
             style={{background:"#FFD700", color:"#080d0a", border:"none", borderRadius:12,
