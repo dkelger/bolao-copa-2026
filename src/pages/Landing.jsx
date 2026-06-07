@@ -87,6 +87,9 @@ export default function Landing() {
         .card-how { transition: all .2s ease; }
         .nav-btn:hover { background: rgba(0,200,83,.1) !important; }
         .nav-btn { transition: background .2s; }
+        .glow-card { transition: all .25s ease; }
+        .glow-gold:hover { box-shadow: 0 0 32px rgba(255,215,0,.25), 0 0 64px rgba(255,215,0,.08); border-color: rgba(255,215,0,.5) !important; transform: translateY(-4px); }
+        .glow-green:hover { box-shadow: 0 0 32px rgba(0,200,83,.25), 0 0 64px rgba(0,200,83,.08); border-color: rgba(0,200,83,.5) !important; transform: translateY(-4px); }
         .match-card:hover { border-color: rgba(0,200,83,.3) !important; background: rgba(0,200,83,.04) !important; }
         .match-card { transition: all .15s ease; }
         .grupo-tab:hover { color: #dff0d8 !important; }
@@ -175,42 +178,70 @@ export default function Landing() {
           background:"linear-gradient(to right, transparent, #00C853, transparent)",
           borderRadius:2, margin:"28px auto"}}/>
 
-        {premio.total > 0 && (
-          <div style={{animation:"fadeUp .7s .3s ease both",
-            background:"linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,215,0,.04))",
-            border:"1px solid rgba(255,215,0,.2)", borderRadius:20,
-            padding:"24px 40px", marginBottom:36, display:"inline-block",
-            boxShadow:"0 0 40px rgba(255,215,0,.05)"}}>
-            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
-              fontWeight:700, letterSpacing:3, color:"#FFD700", textTransform:"uppercase",
-              marginBottom:10}}>🏆 Fundo de Prêmios</div>
-            <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:58,
-              color:"#FFD700", lineHeight:1, marginBottom:18,
-              textShadow:"0 0 30px rgba(255,215,0,.3)"}}>
-              R$ {premio.total.toLocaleString('pt-BR')}
-            </div>
-            <div style={{display:"flex", gap:32, justifyContent:"center", flexWrap:"wrap"}}>
-              {[
-                { pos:"🥇 1º lugar", val: premio.primeiro, color:"#FFD700" },
-                { pos:"🥈 2º lugar", val: premio.segundo, color:"#b0b0b0" },
-                { pos:"🥉 3º lugar", val: premio.terceiro, color:"#cd7f32" },
-              ].map(p => (
-                <div key={p.pos} style={{textAlign:"center"}}>
-                  <div style={{fontSize:12, color:"#6b8a62", marginBottom:4, letterSpacing:1}}>{p.pos}</div>
-                  <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:24,
-                    fontWeight:700, color:p.color}}>
-                    R$ {p.val.toLocaleString('pt-BR')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Cards lado a lado: Prêmio + Destaques */}
+        <div style={{animation:"fadeUp .7s .3s ease both",
+          display:"flex", gap:16, flexWrap:"wrap", justifyContent:"center",
+          marginBottom:40, width:"100%", maxWidth:820}}>
 
-        <p style={{animation:"fadeUp .7s .4s ease both",
-          fontSize:17, color:"#6b8a62", maxWidth:480, lineHeight:1.9, marginBottom:44}}>
-          Escolha 3 seleções, acompanhe cada jogo, responda quizzes e dispute o prêmio com os amigos em tempo real.
-        </p>
+          {/* Card Prêmio */}
+          {premio.total > 0 && (
+            <div className="glow-card glow-gold" style={{
+              flex:"1 1 300px", minWidth:260, maxWidth:380,
+              background:"linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,215,0,.04))",
+              border:"1px solid rgba(255,215,0,.2)", borderRadius:20,
+              padding:"24px 28px", textAlign:"center",
+            }}>
+              <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
+                fontWeight:700, letterSpacing:3, color:"#FFD700", textTransform:"uppercase",
+                marginBottom:10}}>🏆 Fundo de Prêmios</div>
+              <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:54,
+                color:"#FFD700", lineHeight:1, marginBottom:16,
+                textShadow:"0 0 30px rgba(255,215,0,.3)"}}>
+                R$ {premio.total.toLocaleString('pt-BR')}
+              </div>
+              <div style={{display:"flex", gap:20, justifyContent:"center", flexWrap:"wrap"}}>
+                {[
+                  { pos:"🥇 1º", val: premio.primeiro, color:"#FFD700" },
+                  { pos:"🥈 2º", val: premio.segundo, color:"#b0b0b0" },
+                  { pos:"🥉 3º", val: premio.terceiro, color:"#cd7f32" },
+                ].map(p => (
+                  <div key={p.pos} style={{textAlign:"center"}}>
+                    <div style={{fontSize:12, color:"#6b8a62", marginBottom:4}}>{p.pos}</div>
+                    <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:20,
+                      fontWeight:700, color:p.color}}>
+                      R$ {p.val.toLocaleString('pt-BR')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Card Destaques */}
+          <div className="glow-card glow-green" style={{
+            flex:"1 1 300px", minWidth:260, maxWidth:380,
+            background:"linear-gradient(135deg, rgba(0,200,83,.08), rgba(0,200,83,.03))",
+            border:"1px solid rgba(0,200,83,.2)", borderRadius:20,
+            padding:"24px 28px", textAlign:"left",
+            display:"flex", flexDirection:"column", justifyContent:"center", gap:14,
+          }}>
+            {[
+              { emoji:"🏳️", titulo:"Escolha 3 seleções", desc:"Aposte nas que você acredita que vão longe" },
+              { emoji:"⚽", titulo:"Acompanhe cada jogo", desc:"Pontos a cada vitória, empate e fase superada" },
+              { emoji:"🧠", titulo:"Responda quizzes", desc:"+0,5 ponto por acerto em 24h" },
+              { emoji:"🏆", titulo:"Dispute o prêmio", desc:"Com seus amigos em tempo real" },
+            ].map(item => (
+              <div key={item.titulo} style={{display:"flex", alignItems:"flex-start", gap:12}}>
+                <span style={{fontSize:22, lineHeight:1, marginTop:2}}>{item.emoji}</span>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:15,
+                    fontWeight:700, color:"#dff0d8", letterSpacing:.5}}>{item.titulo}</div>
+                  <div style={{fontSize:13, color:"#6b8a62", marginTop:2}}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div style={{animation:"fadeUp .7s .5s ease both",
           display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center"}}>
