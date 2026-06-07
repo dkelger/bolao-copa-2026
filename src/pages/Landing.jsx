@@ -454,6 +454,47 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* CRITÉRIOS DE DESEMPATE */}
+      <section style={{padding:"0 24px 80px", background:"#080f08"}}>
+        <div style={{maxWidth:800, margin:"0 auto"}}>
+          <div style={{background:"#0d1a0d", border:"1px solid rgba(0,200,83,.1)", borderRadius:16, padding:28}}>
+            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:14,
+              fontWeight:700, color:"#FFD700", letterSpacing:2,
+              textTransform:"uppercase", marginBottom:16,
+              paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,.06)",
+              display:"flex", alignItems:"center", gap:8}}>
+              ⚖️ Critérios de Desempate
+            </div>
+            <p style={{fontSize:13, color:"#6b8a62", marginBottom:20, lineHeight:1.6}}>
+              Em caso de empate na pontuação total ao final da Copa, os critérios são aplicados nesta ordem:
+            </p>
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
+              {[
+                { n:"1º", cor:"#FFD700", desc:"Maior número de times classificados para as Oitavas dentre os 3 escolhidos" },
+                { n:"2º", cor:"#00C853", desc:"Maior pontuação acumulada em quizzes" },
+                { n:"3º", cor:"#60a0ff", desc:"Acerto do palpite bônus — artilheiro ou placar exato da final" },
+                { n:"4º", cor:"#9b9b9b", desc:"Ordem cronológica de inscrição — quem se inscreveu primeiro" },
+              ].map(c => (
+                <div key={c.n} style={{display:"flex", alignItems:"center", gap:14,
+                  background:"rgba(255,255,255,.03)", borderRadius:10, padding:"12px 16px"}}>
+                  <div style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:22,
+                    color:c.cor, minWidth:36, textAlign:"center", lineHeight:1}}>{c.n}</div>
+                  <div style={{fontSize:14, color:"#dff0d8", lineHeight:1.5}}>{c.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:16, background:"rgba(255,70,70,.06)",
+              border:"1px solid rgba(255,70,70,.15)", borderRadius:10,
+              padding:"10px 16px", display:"flex", alignItems:"center", gap:10}}>
+              <span style={{fontSize:16}}>⚠️</span>
+              <span style={{fontSize:13, color:"#ff9090"}}>
+                Empate no 4º critério: nenhum dos dois recebe o prêmio — o valor é dividido igualmente entre eles.
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA FINAL */}
       <section style={{padding:"110px 24px", textAlign:"center", position:"relative", overflow:"hidden"}}>
         <div style={{position:"absolute", inset:0, pointerEvents:"none"}}>
