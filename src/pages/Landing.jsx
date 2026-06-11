@@ -125,12 +125,7 @@ export default function Landing() {
               fontWeight:700, letterSpacing:1, padding:"7px 16px", cursor:"pointer"}}>
             JÁ TENHO CONTA
           </button>
-          <button onClick={()=>navigate('/inscricao')}
-            style={{background:"#00C853", color:"#080d0a", border:"none", borderRadius:8,
-              fontFamily:"'Barlow Condensed', sans-serif", fontSize:13,
-              fontWeight:700, letterSpacing:1, padding:"7px 16px", cursor:"pointer"}}>
-            PARTICIPAR
-          </button>
+
         </div>
       </nav>
 
@@ -245,12 +240,7 @@ export default function Landing() {
 
         <div style={{animation:"fadeUp .7s .5s ease both",
           display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center"}}>
-          <button className="hero-btn" onClick={()=>navigate('/inscricao')}
-            style={{background:"#00C853", color:"#080d0a", border:"none", borderRadius:12,
-              fontFamily:"'Barlow Condensed', sans-serif", fontSize:20, fontWeight:700,
-              letterSpacing:1.5, padding:"18px 44px", cursor:"pointer"}}>
-            PARTICIPAR AGORA →
-          </button>
+
           <button className="hero-btn" onClick={()=>navigate('/ranking')}
             style={{background:"transparent", color:"#00C853", border:"1.5px solid rgba(0,200,83,.5)",
               borderRadius:12, fontFamily:"'Barlow Condensed', sans-serif", fontSize:20,
@@ -526,45 +516,32 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section style={{padding:"110px 24px", textAlign:"center", position:"relative", overflow:"hidden"}}>
-        <div style={{position:"absolute", inset:0, pointerEvents:"none"}}>
-          <div style={{position:"absolute", bottom:"-20%", left:"50%", transform:"translateX(-50%)",
-            width:700, height:400, borderRadius:"50%",
-            background:"radial-gradient(ellipse, rgba(0,200,83,.05) 0%, transparent 70%)"}}/>
-        </div>
-        <div style={{background:"rgba(0,200,83,.08)", border:"1px solid rgba(0,200,83,.2)",
-          borderRadius:20, padding:"6px 20px", fontSize:11, fontWeight:700,
-          letterSpacing:3, color:"#00C853", textTransform:"uppercase",
-          display:"inline-block", marginBottom:28}}>
-          🎯 INSCRIÇÕES ABERTAS AGORA
-        </div>
-        <h2 style={{fontFamily:"'Bebas Neue', sans-serif",
-          fontSize:"clamp(60px,10vw,110px)", color:"white",
-          lineHeight:.85, letterSpacing:4, margin:"0 0 12px"}}>GARANTA</h2>
-        <h3 style={{fontFamily:"'Bebas Neue', sans-serif",
-          fontSize:"clamp(50px,8vw,90px)", color:"#FFD700",
-          lineHeight:.85, letterSpacing:4, margin:"0 0 32px"}}>SUA VAGA</h3>
-        <div style={{background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.06)",
-          borderRadius:12, padding:"16px 32px", display:"inline-block", marginBottom:40}}>
-          <p style={{color:"#6b8a62", fontSize:14, margin:"0 0 8px"}}>
-            Inscrições abertas até 24h antes da primeira partida.
+      {/* INSCRIÇÕES ENCERRADAS */}
+      <section style={{padding:"80px 24px", textAlign:"center"}}>
+        <div style={{maxWidth:600, margin:"0 auto",
+          background:"rgba(255,70,70,.05)", border:"1px solid rgba(255,70,70,.15)",
+          borderRadius:20, padding:"48px 32px"}}>
+          <div style={{fontSize:52, marginBottom:16}}>🔒</div>
+          <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
+            color:"white", letterSpacing:3, margin:"0 0 12px"}}>INSCRIÇÕES ENCERRADAS</h2>
+          <p style={{color:"#6b8a62", fontSize:16, lineHeight:1.8, marginBottom:32, maxWidth:400, margin:"0 auto 32px"}}>
+            O prazo para participar do Bolão do DK Copa 2026 foi encerrado. Acompanhe os jogos e torça pelas suas seleções!
           </p>
-          <p style={{fontSize:14, margin:0}}>
-            <strong style={{color:"#00C853"}}>Segunda chance disponível</strong>
-            {" "}até o início das Oitavas — mesmo sem seleção classificada.
-          </p>
-        </div>
-        <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:12}}>
-          <button className="hero-btn" onClick={()=>navigate('/inscricao')}
-            style={{background:"#FFD700", color:"#080d0a", border:"none", borderRadius:12,
-              fontFamily:"'Barlow Condensed', sans-serif", fontSize:22, fontWeight:700,
-              letterSpacing:1.5, padding:"20px 60px", cursor:"pointer"}}>
-            PARTICIPAR POR R$ 50 →
-          </button>
-          <p style={{fontSize:12, color:"#6b8a62", margin:0}}>
-            Pagamento 100% via PIX · Confirmação instantânea · Suporte via WhatsApp
-          </p>
+          <div style={{display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap"}}>
+            <button className="hero-btn" onClick={()=>navigate('/ranking')}
+              style={{background:"#00C853", color:"#080d0a", border:"none", borderRadius:12,
+                fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700,
+                letterSpacing:1.5, padding:"14px 36px", cursor:"pointer"}}>
+              VER RANKING 🏆
+            </button>
+            <button className="hero-btn" onClick={()=>navigate('/login')}
+              style={{background:"transparent", color:"#00C853",
+                border:"1.5px solid rgba(0,200,83,.4)", borderRadius:12,
+                fontFamily:"'Barlow Condensed', sans-serif", fontSize:18,
+                fontWeight:700, letterSpacing:1.5, padding:"14px 36px", cursor:"pointer"}}>
+              ENTRAR NA MINHA CONTA
+            </button>
+          </div>
         </div>
       </section>
 
