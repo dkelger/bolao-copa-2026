@@ -17,19 +17,13 @@ const BANDEIRAS = {
   'Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croácia':'🇭🇷','Gana':'🇬🇭','Panamá':'🇵🇦'
 }
 
-const s = {
-  wrap: { background:"#080d0a", minHeight:"100vh", color:"#dff0d8", fontFamily:"'Barlow', sans-serif", padding:"32px 24px" },
-  inner: { maxWidth:780, margin:"0 auto" },
-  card: { background:"#1a2418", border:"1px solid rgba(0,200,83,.16)", borderRadius:14, padding:"8px 0" },
-}
-
 export default function Ranking() {
   const navigate = useNavigate()
   const [ranking, setRanking] = useState([])
-  const [selStats, setSelStats] = useState([]) // minipainel seleções
+  const [selStats, setSelStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState(null)
-  const [expandido, setExpandido] = useState({}) // quais linhas estão expandidas
+  const [expandido, setExpandido] = useState({})
 
   useEffect(()=>{
     supabase.auth.getSession().then(({ data }) => {
@@ -44,24 +38,39 @@ export default function Ranking() {
   async function loadRanking() {
     const [{ data: users }, { data: pts }, { data: picks }] = await Promise.all([
       supabase.from('users').select('id, nome, status').neq('status', 'admin'),
-      supabase.from('points_log').select('user_id, pontos, tipo'),
-      supabase.from('picks').select('user_id, teams(nome)'),
+      supabase.from('points_log').select('user_id, team_id, pontos, tipo'),
+      supabase.from('picks').select('user_id, team_id, teams(nome)'),
     ])
 
     if (!users) { setLoading(false); return }
 
-    // Monta mapa de pontos totais e quiz por usuário
     const map = {}
-    users.forEach(u => { map[u.id] = { nome: u.nome, status: u.status, total: 0, quiz: 0, picks: [] } })
+    users.forEach(u => {
+      map[u.id] = { nome: u.nome, status: u.status, total: 0, quiz: 0, picks: [] }
+    })
+
     ;(pts || []).forEach(row => {
       if (!map[row.user_id]) return
       map[row.user_id].total += Number(row.pontos)
       if (row.tipo === 'quiz') map[row.user_id].quiz += Number(row.pontos)
     })
 
-    // Associa picks a cada usuário
+    // Pontos por team_id para cada user
+    const ptsPerTeam = {}
+    ;(pts || []).forEach(row => {
+      if (!row.team_id) return
+      const key = `${row.user_id}__${row.team_id}`
+      ptsPerTeam[key] = (ptsPerTeam[key] || 0) + Number(row.pontos)
+    })
+
     ;(picks || []).forEach(p => {
-      if (map[p.user_id]) map[p.user_id].picks.push(p.teams?.nome)
+      if (!map[p.user_id]) return
+      const key = `${p.user_id}__${p.team_id}`
+      map[p.user_id].picks.push({
+        nome: p.teams?.nome,
+        team_id: p.team_id,
+        pontos: ptsPerTeam[key] || 0
+      })
     })
 
     const sorted = Object.entries(map)
@@ -70,9 +79,9 @@ export default function Ranking() {
 
     setRanking(sorted)
 
-    // Minipainel — conta quantos escolheram cada seleção
-    const countMap = {}
+    // Minipainel
     const totalAtivos = users.filter(u => u.status === 'ativo').length || 1
+    const countMap = {}
     ;(picks || []).forEach(p => {
       const nome = p.teams?.nome
       if (!nome) return
@@ -87,14 +96,14 @@ export default function Ranking() {
   }
 
   const medals = ['🥇','🥈','🥉']
+  const toggleExpandido = (id) => setExpandido(prev => ({ ...prev, [id]: !prev[id] }))
 
-  const toggleExpandido = (id) => {
-    setExpandido(prev => ({ ...prev, [id]: !prev[id] }))
-  }
+  const maxCount = selStats.length > 0 ? selStats[0].count : 1
 
   return (
-    <div style={s.wrap}>
-      <div style={s.inner}>
+    <div style={{background:"#080d0a", minHeight:"100vh", color:"#dff0d8", fontFamily:"'Barlow', sans-serif", padding:"32px 24px"}}>
+      <div style={{maxWidth:820, margin:"0 auto"}}>
+
         <button onClick={()=>navigate('/dashboard')}
           style={{background:"transparent", border:"none", color:"#6b8a62",
             fontFamily:"'Barlow Condensed', sans-serif", fontSize:14, fontWeight:700,
@@ -114,29 +123,85 @@ export default function Ranking() {
           <p style={{color:"#FFD700"}}>Carregando classificação...</p>
         ) : (
           <>
+            {/* GRÁFICO DE COLUNAS — SELEÇÕES MAIS ESCOLHIDAS */}
+            {selStats.length > 0 && (
+              <div style={{background:"#1a2418", border:"1px solid rgba(0,200,83,.16)",
+                borderRadius:14, padding:"20px 20px 8px", marginBottom:20}}>
+                <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
+                  fontWeight:700, letterSpacing:2, textTransform:"uppercase",
+                  color:"#6b8a62", marginBottom:16}}>🏳️ Seleções mais escolhidas</div>
+
+                {/* Gráfico */}
+                <div style={{overflowX:"auto", paddingBottom:8}}>
+                  <div style={{display:"flex", alignItems:"flex-end", gap:6, minWidth: selStats.length * 56, height:120}}>
+                    {selStats.map((s, i) => {
+                      const h = Math.max(12, Math.round((s.count / maxCount) * 100))
+                      const cor = i === 0 ? "#FFD700" : i === 1 ? "#b0b0b0" : i === 2 ? "#cd7f32" : "#00C853"
+                      return (
+                        <div key={s.nome} style={{display:"flex", flexDirection:"column",
+                          alignItems:"center", flex:"1 0 48px", gap:4}}>
+                          {/* % em cima */}
+                          <div style={{fontFamily:"'Barlow Condensed', sans-serif",
+                            fontSize:11, fontWeight:700, color:cor}}>{s.pct}%</div>
+                          {/* Coluna */}
+                          <div style={{width:"100%", maxWidth:44, borderRadius:"4px 4px 0 0",
+                            height:`${h}px`,
+                            background:`linear-gradient(to top, ${cor}cc, ${cor}66)`,
+                            border:`1px solid ${cor}44`,
+                            transition:"height .4s ease",
+                            position:"relative"}}>
+                          </div>
+                          {/* Bandeira */}
+                          <div style={{fontSize:16, lineHeight:1}}>{BANDEIRAS[s.nome] || '🏴'}</div>
+                          {/* Nome curto */}
+                          <div style={{fontSize:9, color:"#6b8a62", textAlign:"center",
+                            lineHeight:1.2, maxWidth:44, overflow:"hidden",
+                            whiteSpace:"nowrap", textOverflow:"ellipsis"}}>
+                            {s.nome.split(' ')[0]}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Legenda top 3 */}
+                <div style={{display:"flex", gap:12, flexWrap:"wrap", marginTop:12,
+                  paddingTop:12, borderTop:"1px solid rgba(255,255,255,.05)"}}>
+                  {selStats.slice(0,5).map((s,i) => {
+                    const cor = i===0?"#FFD700":i===1?"#b0b0b0":i===2?"#cd7f32":"#00C853"
+                    return (
+                      <div key={s.nome} style={{display:"flex", alignItems:"center", gap:6}}>
+                        <span style={{fontSize:14}}>{BANDEIRAS[s.nome] || '🏴'}</span>
+                        <span style={{fontSize:12, color:"#dff0d8"}}>{s.nome}</span>
+                        <span style={{fontFamily:"'Barlow Condensed', sans-serif",
+                          fontSize:13, fontWeight:700, color:cor}}>{s.count}x · {s.pct}%</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* RANKING */}
-            <div style={s.card}>
+            <div style={{background:"#1a2418", border:"1px solid rgba(0,200,83,.16)", borderRadius:14, padding:"8px 0"}}>
               {ranking.map((r,i)=>{
                 const isMe = r.id === currentUserId
                 const aberto = expandido[r.id]
                 return (
                   <div key={r.id}>
-                    {/* Linha principal */}
-                    <div
-                      onClick={() => toggleExpandido(r.id)}
+                    <div onClick={() => toggleExpandido(r.id)}
                       style={{display:"flex", alignItems:"center", gap:14,
-                        padding:"13px 20px", borderRadius:10, cursor:"pointer",
+                        padding:"13px 20px", cursor:"pointer",
                         background: isMe ? "rgba(0,200,83,.06)" : "transparent",
                         transition:"background .15s"}}>
 
-                      {/* Posição */}
                       <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:22,
                         fontWeight:900, minWidth:36, textAlign:"center",
                         color:i===0?"#FFD700":i===1?"#b0b0b0":i===2?"#cd7f32":"#6b8a62"}}>
                         {i<3 ? medals[i] : i+1}
                       </div>
 
-                      {/* Avatar */}
                       <div style={{width:40, height:40, borderRadius:"50%",
                         background: isMe ? "rgba(0,200,83,.2)" : "#1f2d1b",
                         border:`2px solid ${isMe ? "rgba(0,200,83,.6)" : "rgba(0,200,83,.2)"}`,
@@ -145,32 +210,32 @@ export default function Ranking() {
                         {r.nome?.charAt(0).toUpperCase()}
                       </div>
 
-                      {/* Nome + seleções */}
                       <div style={{flex:1, minWidth:0}}>
                         <div style={{fontSize:15, fontWeight:600, color: isMe ? "#00C853" : "#dff0d8"}}>
                           {r.nome} {isMe && <span style={{fontSize:11, opacity:.7}}>(você)</span>}
                         </div>
-                        {/* Seleções inline */}
+                        {/* Seleções inline com pontos */}
                         {r.picks.length > 0 && (
-                          <div style={{display:"flex", gap:4, flexWrap:"wrap", marginTop:4}}>
+                          <div style={{display:"flex", gap:8, flexWrap:"wrap", marginTop:4}}>
                             {r.picks.map(p => (
-                              <span key={p} style={{fontSize:12, color:"#6b8a62"}}>
-                                {BANDEIRAS[p] || '🏴'} {p}
+                              <span key={p.nome} style={{fontSize:12, color:"#6b8a62",
+                                display:"flex", alignItems:"center", gap:3}}>
+                                {BANDEIRAS[p.nome] || '🏴'}
+                                <span>{p.nome?.split(' ')[0]}</span>
+                                {p.pontos > 0 && (
+                                  <span style={{color:"#00C853", fontWeight:700}}>+{p.pontos.toFixed(1)}</span>
+                                )}
                               </span>
                             )).reduce((acc, el, idx) => idx === 0 ? [el] : [...acc,
-                              <span key={`sep${idx}`} style={{color:"rgba(255,255,255,.15)", fontSize:12}}>·</span>, el], [])}
+                              <span key={`s${idx}`} style={{color:"rgba(255,255,255,.1)", fontSize:10}}>|</span>, el], [])}
                           </div>
                         )}
                         {r.status === 'cancelado' && (
                           <div style={{fontSize:11, color:"#ff7070", marginTop:2}}>cancelado</div>
                         )}
-                        {r.status === 'pendente' && (
-                          <div style={{fontSize:11, color:"#FFD700", marginTop:2}}>pagamento pendente</div>
-                        )}
                       </div>
 
-                      {/* Pontos + seta */}
-                      <div style={{display:"flex", alignItems:"center", gap:10}}>
+                      <div style={{display:"flex", alignItems:"center", gap:10, flexShrink:0}}>
                         <div style={{textAlign:"right"}}>
                           <div style={{fontFamily:"'Barlow Condensed', sans-serif",
                             fontSize:28, fontWeight:900, lineHeight:1,
@@ -178,113 +243,83 @@ export default function Ranking() {
                             {r.total.toFixed(1)}
                           </div>
                           {r.quiz > 0 && (
-                            <div style={{fontSize:11, color:"#6b8a62", textAlign:"right"}}>
-                              🧠 {r.quiz.toFixed(1)} quiz
-                            </div>
+                            <div style={{fontSize:11, color:"#6b8a62"}}>🧠 {r.quiz.toFixed(1)}</div>
                           )}
                         </div>
-                        <div style={{color:"#6b8a62", fontSize:12, transition:"transform .2s",
-                          transform: aberto ? "rotate(180deg)" : "rotate(0deg)"}}>▼</div>
+                        <div style={{color:"#6b8a62", fontSize:11,
+                          transform: aberto ? "rotate(180deg)" : "rotate(0deg)",
+                          transition:"transform .2s"}}>▼</div>
                       </div>
                     </div>
 
-                    {/* Painel expandido */}
+                    {/* Expandido */}
                     {aberto && (
-                      <div style={{margin:"0 16px 12px", background:"rgba(0,0,0,.2)",
-                        border:"1px solid rgba(255,255,255,.06)", borderRadius:10, padding:"14px 16px"}}>
+                      <div style={{margin:"0 16px 12px", background:"rgba(0,0,0,.25)",
+                        border:"1px solid rgba(255,255,255,.06)", borderRadius:10, padding:"16px"}}>
+
                         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
                           fontWeight:700, letterSpacing:2, color:"#6b8a62",
-                          textTransform:"uppercase", marginBottom:10}}>Seleções escolhidas</div>
+                          textTransform:"uppercase", marginBottom:12}}>Seleções e pontos</div>
+
                         {r.picks.length === 0 ? (
                           <div style={{fontSize:13, color:"#6b8a62"}}>Sem seleções registradas</div>
                         ) : (
-                          <div style={{display:"flex", gap:8, flexWrap:"wrap", marginBottom:12}}>
+                          <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10, marginBottom:16}}>
                             {r.picks.map(p => (
-                              <div key={p} style={{background:"rgba(0,200,83,.08)",
-                                border:"1px solid rgba(0,200,83,.2)", borderRadius:20,
-                                padding:"4px 14px", fontSize:13, color:"#00C853", fontWeight:700,
-                                display:"flex", alignItems:"center", gap:6}}>
-                                {BANDEIRAS[p] || '🏴'} {p}
+                              <div key={p.nome} style={{background:"rgba(0,200,83,.06)",
+                                border:"1px solid rgba(0,200,83,.15)", borderRadius:12,
+                                padding:"12px 14px", display:"flex", alignItems:"center",
+                                justifyContent:"space-between"}}>
+                                <div style={{display:"flex", alignItems:"center", gap:8}}>
+                                  <span style={{fontSize:22}}>{BANDEIRAS[p.nome] || '🏴'}</span>
+                                  <div>
+                                    <div style={{fontFamily:"'Barlow Condensed', sans-serif",
+                                      fontSize:14, fontWeight:700, color:"#dff0d8"}}>{p.nome}</div>
+                                    <div style={{fontSize:11, color:"#6b8a62"}}>seleção</div>
+                                  </div>
+                                </div>
+                                <div style={{textAlign:"right"}}>
+                                  <div style={{fontFamily:"'Barlow Condensed', sans-serif",
+                                    fontSize:22, fontWeight:900,
+                                    color: p.pontos > 0 ? "#00C853" : "#6b8a62"}}>
+                                    {p.pontos > 0 ? `+${p.pontos.toFixed(1)}` : "0"}
+                                  </div>
+                                  <div style={{fontSize:10, color:"#6b8a62"}}>pts</div>
+                                </div>
                               </div>
                             ))}
                           </div>
                         )}
-                        <div style={{display:"flex", gap:20, flexWrap:"wrap", paddingTop:10,
-                          borderTop:"1px solid rgba(255,255,255,.05)"}}>
-                          <div>
-                            <div style={{fontSize:11, color:"#6b8a62", marginBottom:2}}>PONTOS TOTAIS</div>
-                            <div style={{fontFamily:"'Barlow Condensed', sans-serif",
-                              fontSize:22, fontWeight:700, color:"#dff0d8"}}>{r.total.toFixed(1)}</div>
-                          </div>
-                          <div>
-                            <div style={{fontSize:11, color:"#6b8a62", marginBottom:2}}>PONTOS DE QUIZ 🧠</div>
-                            <div style={{fontFamily:"'Barlow Condensed', sans-serif",
-                              fontSize:22, fontWeight:700, color:"#00C853"}}>{r.quiz.toFixed(1)}</div>
-                          </div>
-                          <div>
-                            <div style={{fontSize:11, color:"#6b8a62", marginBottom:2}}>PONTOS DE JOGOS ⚽</div>
-                            <div style={{fontFamily:"'Barlow Condensed', sans-serif",
-                              fontSize:22, fontWeight:700, color:"#FFD700"}}>{(r.total - r.quiz).toFixed(1)}</div>
-                          </div>
+
+                        {/* Resumo pontos */}
+                        <div style={{display:"flex", gap:16, flexWrap:"wrap",
+                          paddingTop:12, borderTop:"1px solid rgba(255,255,255,.05)"}}>
+                          {[
+                            { label:"TOTAL", val: r.total.toFixed(1), cor:"#dff0d8" },
+                            { label:"⚽ JOGOS", val: (r.total - r.quiz).toFixed(1), cor:"#FFD700" },
+                            { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853" },
+                          ].map(item => (
+                            <div key={item.label}>
+                              <div style={{fontSize:10, color:"#6b8a62", letterSpacing:1,
+                                textTransform:"uppercase", marginBottom:2}}>{item.label}</div>
+                              <div style={{fontFamily:"'Barlow Condensed', sans-serif",
+                                fontSize:22, fontWeight:700, color:item.cor}}>{item.val}</div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
 
-                    {i<ranking.length-1 && <div style={{height:1,
-                      background:"rgba(255,255,255,.04)", margin:"0 16px"}}/>}
+                    {i<ranking.length-1 && (
+                      <div style={{height:1, background:"rgba(255,255,255,.04)", margin:"0 16px"}}/>
+                    )}
                   </div>
                 )
               })}
             </div>
 
-            {/* MINIPAINEL SELEÇÕES */}
-            {selStats.length > 0 && (
-              <div style={{marginTop:24, background:"#1a2418",
-                border:"1px solid rgba(0,200,83,.16)", borderRadius:14, padding:20}}>
-                <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
-                  fontWeight:700, letterSpacing:2, textTransform:"uppercase",
-                  color:"#6b8a62", marginBottom:16}}>🏳️ Seleções mais escolhidas</div>
-                <div style={{display:"flex", flexDirection:"column", gap:10}}>
-                  {selStats.map((s, i) => (
-                    <div key={s.nome}>
-                      <div style={{display:"flex", justifyContent:"space-between",
-                        alignItems:"center", marginBottom:5}}>
-                        <div style={{display:"flex", alignItems:"center", gap:8}}>
-                          <span style={{fontSize:18}}>{BANDEIRAS[s.nome] || '🏴'}</span>
-                          <span style={{fontSize:14, fontWeight:600}}>{s.nome}</span>
-                        </div>
-                        <div style={{display:"flex", alignItems:"center", gap:10}}>
-                          <span style={{fontSize:13, color:"#6b8a62"}}>{s.count} {s.count === 1 ? 'pessoa' : 'pessoas'}</span>
-                          <span style={{fontFamily:"'Barlow Condensed', sans-serif",
-                            fontSize:16, fontWeight:700,
-                            color: i===0?"#FFD700":i===1?"#b0b0b0":i===2?"#cd7f32":"#00C853"}}>
-                            {s.pct}%
-                          </span>
-                        </div>
-                      </div>
-                      {/* Barra de progresso */}
-                      <div style={{height:6, background:"rgba(255,255,255,.06)", borderRadius:3, overflow:"hidden"}}>
-                        <div style={{
-                          height:"100%", borderRadius:3,
-                          width:`${s.pct}%`,
-                          background: i===0
-                            ? "linear-gradient(to right, #FFD700, #ffa500)"
-                            : i===1
-                            ? "linear-gradient(to right, #b0b0b0, #888)"
-                            : i===2
-                            ? "linear-gradient(to right, #cd7f32, #a06020)"
-                            : "linear-gradient(to right, #00C853, #009a40)",
-                          transition:"width .4s ease"
-                        }}/>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div style={{textAlign:"center", marginTop:16, fontSize:13, color:"#6b8a62"}}>
-              Atualizado automaticamente a cada 30 segundos · Clique em um participante para ver detalhes
+              Atualizado a cada 30s · Clique num participante para ver detalhes
             </div>
           </>
         )}
