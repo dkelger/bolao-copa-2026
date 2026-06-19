@@ -30,6 +30,7 @@ export default function Admin() {
   const [editMatch, setEditMatch] = useState(null)
   const [placar, setPlacar] = useState({ a:'', b:'' })
   const [newQuiz, setNewQuiz] = useState(false)
+  const [tipoNovoQuiz, setTipoNovoQuiz] = useState('normal')
   const [quiz, setQuiz] = useState({ pergunta:'', a:'', b:'', c:'', d:'', correta:'A', expira:'' })
   const [notif, setNotif] = useState({ titulo:'', mensagem:'' })
   const [stats, setStats] = useState({ participantes:0, arrecadado:0, ativos:0 })
@@ -117,7 +118,7 @@ export default function Admin() {
       await supabase.from('picks').delete().eq('user_id', modalUser.id)
 
       // Insere os novos picks
-      const inserts = modalPicks.map((t, i) => ({ user_id: modalUser.id, team_id: t.id, ordem: i + 1 }))
+      const inserts = modalPicks.map(t => ({ user_id: modalUser.id, team_id: t.id }))
       const { error } = await supabase.from('picks').insert(inserts)
 
       if (error) throw error
@@ -189,15 +190,19 @@ export default function Admin() {
       { id:'A', texto: quiz.a }, { id:'B', texto: quiz.b },
       { id:'C', texto: quiz.c }, { id:'D', texto: quiz.d },
     ].filter(x => x.texto)
+    const expiracaoBonus = new Date(Date.now() + 100*60*1000).toISOString() // 100 minutos
+    const expiracaoNormal = quiz.expira || new Date(Date.now() + 24*60*60*1000).toISOString()
     await supabase.from('quizzes').insert({
       pergunta: quiz.pergunta,
       alternativas,
       resposta_correta: quiz.correta,
       publicado: true,
       publicado_em: new Date().toISOString(),
-      expira_em: quiz.expira || new Date(Date.now() + 24*60*60*1000).toISOString(),
+      expira_em: tipoNovoQuiz === 'bonus' ? expiracaoBonus : expiracaoNormal,
+      tipo: tipoNovoQuiz,
     })
     setQuiz({ pergunta:'', a:'', b:'', c:'', d:'', correta:'A', expira:'' })
+    setTipoNovoQuiz('normal')
     setNewQuiz(false); loadAll(); setLoading(false)
   }
 
@@ -400,12 +405,27 @@ export default function Admin() {
         {/* QUIZZES */}
         {tab==='quizzes' && (
           <div>
-            <button style={{ ...s.btn, marginBottom:16 }} onClick={() => setNewQuiz(!newQuiz)}>
-              + CRIAR QUIZ
-            </button>
+            <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+              <button style={s.btn} onClick={() => { setTipoNovoQuiz('normal'); setNewQuiz(true) }}>
+                + CRIAR QUIZ NORMAL
+              </button>
+              <button style={{ ...s.btn, background:"#FFD700", color:"#080d0a" }}
+                onClick={() => { setTipoNovoQuiz('bonus'); setNewQuiz(true) }}>
+                ⚡ CRIAR QUIZ PRÊMIO EXTRA
+              </button>
+            </div>
             {newQuiz && (
               <div style={s.card}>
-                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Novo Quiz</div>
+                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700 }}>
+                    {tipoNovoQuiz === 'bonus' ? '⚡ Quiz Prêmio Extra' : 'Novo Quiz'}
+                  </div>
+                  {tipoNovoQuiz === 'bonus' && (
+                    <span style={{ background:"rgba(255,215,0,.15)", color:"#FFD700", border:"1px solid rgba(255,215,0,.3)", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:700 }}>
+                      100min · +5/+2/+1pt
+                    </span>
+                  )}
+                </div>
                 <div style={{ marginBottom:12 }}>
                   <label style={{ fontSize:12, color:"#6b8a62", display:"block", marginBottom:6 }}>PERGUNTA</label>
                   <textarea style={{ ...s.input, width:"100%", minHeight:80, resize:"vertical" }}
@@ -437,10 +457,20 @@ export default function Admin() {
               ) : quizzes.map(q => (
                 <div key={q.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0", borderBottom:"1px solid rgba(255,255,255,.05)", flexWrap:"wrap", gap:8 }}>
                   <div>
-                    <div style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>{q.pergunta}</div>
-                    <span style={{ background: q.publicado?"rgba(0,200,83,.12)":"rgba(255,255,255,.06)", color: q.publicado?"#00C853":"#6b8a62", border:`1px solid ${q.publicado?"rgba(0,200,83,.25)":"rgba(255,255,255,.1)"}`, borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 }}>
-                      {q.publicado ? 'publicado' : 'rascunho'}
-                    </span>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                      {q.tipo === 'bonus' && <span style={{ fontSize:14 }}>⚡</span>}
+                      <div style={{ fontSize:15, fontWeight:600 }}>{q.pergunta}</div>
+                    </div>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      <span style={{ background: q.publicado?"rgba(0,200,83,.12)":"rgba(255,255,255,.06)", color: q.publicado?"#00C853":"#6b8a62", border:`1px solid ${q.publicado?"rgba(0,200,83,.25)":"rgba(255,255,255,.1)"}`, borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 }}>
+                        {q.publicado ? 'publicado' : 'rascunho'}
+                      </span>
+                      {q.tipo === 'bonus' && (
+                        <span style={{ background:"rgba(255,215,0,.12)", color:"#FFD700", border:"1px solid rgba(255,215,0,.25)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 }}>
+                          ⚡ prêmio extra
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
