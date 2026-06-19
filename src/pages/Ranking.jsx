@@ -46,13 +46,13 @@ export default function Ranking() {
 
     const map = {}
     users.forEach(u => {
-      map[u.id] = { nome: u.nome, status: u.status, total: 0, quiz: 0, picks: [] }
+      map[u.id] = { nome: u.nome, status: u.status, total: 0, quiz: 0, quizBonus: 0, picks: [] }
     })
 
     ;(pts || []).forEach(row => {
       if (!map[row.user_id]) return
       map[row.user_id].total += Number(row.pontos)
-      if (row.tipo === 'quiz' || row.tipo === 'quiz_bonus') map[row.user_id].quiz += Number(row.pontos)
+      if (row.tipo === 'quiz') map[row.user_id].quiz += Number(row.pontos)
     })
 
     // Pontos por team_id para cada user
@@ -242,8 +242,11 @@ export default function Ranking() {
                             color: isMe ? "#00C853" : r.total > 0 ? "#dff0d8" : "#6b8a62"}}>
                             {r.total.toFixed(1)}
                           </div>
-                          {r.quiz > 0 && (
-                            <div style={{fontSize:11, color:"#6b8a62"}}>🧠 {r.quiz.toFixed(1)}</div>
+                          {(r.quiz > 0 || r.quizBonus > 0) && (
+                            <div style={{display:"flex", gap:6, justifyContent:"flex-end", flexWrap:"wrap"}}>
+                              {r.quiz > 0 && <div style={{fontSize:11, color:"#6b8a62"}}>🧠 {r.quiz.toFixed(1)}</div>}
+                              {r.quizBonus > 0 && <div style={{fontSize:11, color:"#FFD700"}}>⚡ {r.quizBonus.toFixed(1)}</div>}
+                            </div>
                           )}
                         </div>
                         <div style={{color:"#6b8a62", fontSize:11,
@@ -296,8 +299,9 @@ export default function Ranking() {
                           paddingTop:12, borderTop:"1px solid rgba(255,255,255,.05)"}}>
                           {[
                             { label:"TOTAL", val: r.total.toFixed(1), cor:"#dff0d8" },
-                            { label:"⚽ JOGOS", val: (r.total - r.quiz).toFixed(1), cor:"#FFD700" },
+                            { label:"⚽ JOGOS", val: (r.total - r.quiz - r.quizBonus).toFixed(1), cor:"#FFD700" },
                             { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853" },
+                            ...(r.quizBonus > 0 ? [{ label:"⚡ BÔNUS", val: r.quizBonus.toFixed(1), cor:"#FFD700" }] : []),
                           ].map(item => (
                             <div key={item.label}>
                               <div style={{fontSize:10, color:"#6b8a62", letterSpacing:1,
