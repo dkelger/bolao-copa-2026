@@ -52,7 +52,7 @@ export default function Ranking() {
     ;(pts || []).forEach(row => {
       if (!map[row.user_id]) return
       map[row.user_id].total += Number(row.pontos)
-      if (row.tipo === 'quiz') map[row.user_id].quiz += Number(row.pontos)
+      if (row.tipo === 'quiz' || row.tipo === 'quiz_bonus') map[row.user_id].quiz += Number(row.pontos)
     })
 
     // Pontos por team_id para cada user
