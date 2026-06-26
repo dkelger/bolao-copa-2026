@@ -2,9 +2,25 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 
+const BANDEIRAS = {
+  'México':'🇲🇽','África do Sul':'🇿🇦','Coreia do Sul':'🇰🇷','República Tcheca':'🇨🇿',
+  'Canadá':'🇨🇦','Catar':'🇶🇦','Suíça':'🇨🇭','Itália':'🇮🇹',
+  'Brasil':'🇧🇷','Marrocos':'🇲🇦','Haiti':'🇭🇹','Escócia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Estados Unidos':'🇺🇸','Paraguai':'🇵🇾','Austrália':'🇦🇺','Turquia':'🇹🇷',
+  'Alemanha':'🇩🇪','Curaçao':'🇨🇼','Costa do Marfim':'🇨🇮','Equador':'🇪🇨',
+  'Holanda':'🇳🇱','Japão':'🇯🇵','Tunísia':'🇹🇳','Ucrânia':'🇺🇦','Suécia':'🇸🇪',
+  'Bélgica':'🇧🇪','Egito':'🇪🇬','Irã':'🇮🇷','Nova Zelândia':'🇳🇿',
+  'Espanha':'🇪🇸','Cabo Verde':'🇨🇻','Arábia Saudita':'🇸🇦','Uruguai':'🇺🇾',
+  'França':'🇫🇷','Senegal':'🇸🇳','Noruega':'🇳🇴','Iraque':'🇮🇶',
+  'Argentina':'🇦🇷','Argélia':'🇩🇿','Áustria':'🇦🇹','Jordânia':'🇯🇴',
+  'Portugal':'🇵🇹','Uzbequistão':'🇺🇿','Colômbia':'🇨🇴','RD Congo':'🇨🇩',
+  'Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croácia':'🇭🇷','Gana':'🇬🇭','Panamá':'🇵🇦',
+  'Bósnia e Herzegovina':'🇧🇦'
+}
+
 const s = {
   wrap: { background:"#080d0a", minHeight:"100vh", color:"#dff0d8", fontFamily:"'Barlow', sans-serif", padding:"32px 24px" },
-  inner: { maxWidth:900, margin:"0 auto" },
+  inner: { maxWidth:960, margin:"0 auto" },
   card: { background:"#1a2418", border:"1px solid rgba(0,200,83,.16)", borderRadius:14, padding:20, marginBottom:16 },
   btn: { background:"#00C853", color:"#080d0a", border:"none", borderRadius:10, fontFamily:"'Barlow Condensed', sans-serif", fontSize:14, fontWeight:700, letterSpacing:1.5, padding:"10px 20px", cursor:"pointer" },
   btnRed: { background:"rgba(255,70,70,.15)", color:"#ff7070", border:"1px solid rgba(255,70,70,.3)", borderRadius:10, fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700, padding:"8px 16px", cursor:"pointer" },
@@ -18,6 +34,10 @@ const s = {
   modal: { background:"#1a2418", border:"1px solid rgba(0,200,83,.25)", borderRadius:16, padding:28, width:"100%", maxWidth:520, maxHeight:"90vh", overflowY:"auto" },
 }
 
+const CLASSIFICACAO_PTS = { 1: 5, 2: 3, 3: 1, 4: 0 }
+const CLASSIFICACAO_LABEL = { 1:'🥇 1º lugar', 2:'🥈 2º lugar', 3:'🥉 3º lugar (passa)', 4:'❌ Eliminado' }
+const CLASSIFICACAO_COR = { 1:'#FFD700', 2:'#b0b0b0', 3:'#00C853', 4:'#ff7070' }
+
 export default function Admin() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('partidas')
@@ -28,17 +48,20 @@ export default function Admin() {
   const [allTeams, setAllTeams] = useState([])
   const [loading, setLoading] = useState(false)
   const [editMatch, setEditMatch] = useState(null)
-  const [placar, setPlacar] = useState({ a:'', b:'' })
+  const [placar, setPlacar] = useState({ a:'', b:'', penaltis:false, penaltis_a:'', penaltis_b:'' })
   const [newQuiz, setNewQuiz] = useState(false)
   const [tipoNovoQuiz, setTipoNovoQuiz] = useState('normal')
   const [quiz, setQuiz] = useState({ pergunta:'', a:'', b:'', c:'', d:'', correta:'A', expira:'' })
   const [notif, setNotif] = useState({ titulo:'', mensagem:'' })
   const [stats, setStats] = useState({ participantes:0, arrecadado:0, ativos:0 })
   const [autorizado, setAutorizado] = useState(null)
+  const [classificacoes, setClassificacoes] = useState({}) // { teamId: 1|2|3|4 }
+  const [savingClassif, setSavingClassif] = useState(false)
+  const [classificMsg, setClassificMsg] = useState('')
 
   // Modal inscrever seleções
-  const [modalUser, setModalUser] = useState(null) // { id, nome }
-  const [modalPicks, setModalPicks] = useState([]) // teams selecionados no modal
+  const [modalUser, setModalUser] = useState(null)
+  const [modalPicks, setModalPicks] = useState([])
   const [teamSearch, setTeamSearch] = useState('')
   const [savingPicks, setSavingPicks] = useState(false)
   const [pickError, setPickError] = useState('')
@@ -47,11 +70,9 @@ export default function Admin() {
     supabase.auth.getSession().then(({ data }) => {
       const email = data?.session?.user?.email
       if (!email || !['dkelger@gmail.com','diego_admin@bolao2026.com'].includes(email)) {
-        setAutorizado(false)
-        navigate('/')
+        setAutorizado(false); navigate('/')
       } else {
-        setAutorizado(true)
-        loadAll()
+        setAutorizado(true); loadAll()
       }
     })
   }, [])
@@ -69,9 +90,82 @@ export default function Admin() {
     setQuizzes(q || [])
     setPicks(p || [])
     setAllTeams(t || [])
+
+    // Carrega classificações já salvas
+    const classifMap = {}
+    ;(t || []).forEach(team => {
+      if (team.classificacao) classifMap[team.id] = team.classificacao
+    })
+    setClassificacoes(classifMap)
+
     const naoAdmin = (u || []).filter(x => x.status !== 'admin')
     const ativos = naoAdmin.filter(x => x.status === 'ativo').length
     setStats({ participantes: naoAdmin.length, arrecadado: ativos * 50, ativos })
+  }
+
+  // Agrupa times por grupo
+  const grupos = {}
+  allTeams.forEach(t => {
+    if (!grupos[t.grupo]) grupos[t.grupo] = []
+    grupos[t.grupo].push(t)
+  })
+
+  function setClassif(teamId, pos) {
+    setClassificacoes(prev => ({ ...prev, [teamId]: pos }))
+  }
+
+  async function salvarClassificacoes() {
+    setSavingClassif(true)
+    setClassificMsg('')
+    try {
+      // Salva cada time com sua classificação
+      for (const [teamId, pos] of Object.entries(classificacoes)) {
+        await supabase.from('teams').update({ classificacao: pos }).eq('id', teamId)
+      }
+
+      // Calcula pontos de classificação
+      const logs = []
+      for (const [teamId, pos] of Object.entries(classificacoes)) {
+        const pts = CLASSIFICACAO_PTS[pos] || 0
+        if (pts === 0) continue
+
+        // Busca quem escolheu esse time
+        const { data: teamPicks } = await supabase
+          .from('picks').select('user_id').eq('team_id', teamId)
+
+        // Verifica se já foi dado ponto de classificação pra esse time
+        const { data: jaExiste } = await supabase
+          .from('points_log')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('tipo', 'classificacao_grupo')
+          .limit(1)
+
+        if (jaExiste && jaExiste.length > 0) continue // já calculou
+
+        ;(teamPicks || []).forEach(p => {
+          logs.push({
+            user_id: p.user_id,
+            team_id: teamId,
+            tipo: 'classificacao_grupo',
+            pontos: pts,
+            descricao: `${CLASSIFICACAO_LABEL[pos]} no grupo +${pts}pts`
+          })
+        })
+      }
+
+      if (logs.length > 0) {
+        await supabase.from('points_log').insert(logs)
+        setClassificMsg(`✅ Classificações salvas! ${logs.length} pontos distribuídos.`)
+      } else {
+        setClassificMsg('✅ Classificações salvas! (pontos já haviam sido distribuídos)')
+      }
+      await loadAll()
+    } catch (err) {
+      setClassificMsg('❌ Erro: ' + err.message)
+    } finally {
+      setSavingClassif(false)
+    }
   }
 
   function getPicksDoUsuario(userId) {
@@ -79,52 +173,29 @@ export default function Admin() {
   }
 
   function abrirModalInscrever(user) {
-    setModalUser(user)
-    setModalPicks([])
-    setTeamSearch('')
-    setPickError('')
+    setModalUser(user); setModalPicks([]); setTeamSearch(''); setPickError('')
   }
 
   function fecharModal() {
-    setModalUser(null)
-    setModalPicks([])
-    setTeamSearch('')
-    setPickError('')
+    setModalUser(null); setModalPicks([]); setTeamSearch(''); setPickError('')
   }
 
   function toggleModalPick(team) {
     const jaEsta = modalPicks.find(t => t.id === team.id)
-    if (jaEsta) {
-      setModalPicks(modalPicks.filter(t => t.id !== team.id))
-    } else {
-      if (modalPicks.length >= 3) {
-        setPickError('Máximo de 3 seleções permitido.')
-        return
-      }
-      setModalPicks([...modalPicks, team])
-      setPickError('')
-    }
+    if (jaEsta) { setModalPicks(modalPicks.filter(t => t.id !== team.id)); return }
+    if (modalPicks.length >= 3) { setPickError('Máximo de 3 seleções permitido.'); return }
+    setModalPicks([...modalPicks, team]); setPickError('')
   }
 
   async function salvarPicksAdmin() {
-    if (modalPicks.length !== 3) {
-      setPickError('Escolha exatamente 3 seleções.')
-      return
-    }
-    setSavingPicks(true)
-    setPickError('')
+    if (modalPicks.length !== 3) { setPickError('Escolha exatamente 3 seleções.'); return }
+    setSavingPicks(true); setPickError('')
     try {
-      // Remove picks anteriores do usuário (caso tenha algum)
       await supabase.from('picks').delete().eq('user_id', modalUser.id)
-
-      // Insere os novos picks
       const inserts = modalPicks.map(t => ({ user_id: modalUser.id, team_id: t.id }))
       const { error } = await supabase.from('picks').insert(inserts)
-
       if (error) throw error
-
-      fecharModal()
-      await loadAll()
+      fecharModal(); await loadAll()
     } catch (err) {
       setPickError('Erro ao salvar: ' + err.message)
     } finally {
@@ -135,19 +206,40 @@ export default function Admin() {
   async function lancarResultado(match) {
     setLoading(true)
     const pa = parseInt(placar.a), pb = parseInt(placar.b)
-    const vencedor = pa > pb ? match.team_a_id : pb > pa ? match.team_b_id : null
+    const fase = match.fase
+    const isMataaMata = fase !== 'grupos'
+    const comPenaltis = isMataaMata && placar.penaltis
+    const pen_a = comPenaltis ? parseInt(placar.penaltis_a) : null
+    const pen_b = comPenaltis ? parseInt(placar.penaltis_b) : null
+
+    // Vencedor
+    let vencedor = null
+    if (isMataaMata) {
+      if (comPenaltis) {
+        vencedor = pen_a > pen_b ? match.team_a_id : match.team_b_id
+      } else {
+        vencedor = pa > pb ? match.team_a_id : match.team_b_id
+      }
+    } else {
+      vencedor = pa > pb ? match.team_a_id : pb > pa ? match.team_b_id : null
+    }
+
     await supabase.from('matches').update({
       placar_a: pa, placar_b: pb,
+      penaltis_a: pen_a, penaltis_b: pen_b,
       vencedor_id: vencedor,
+      passou_penaltis: comPenaltis || false,
       status: 'encerrado',
       updated_at: new Date().toISOString()
     }).eq('id', match.id)
-    setEditMatch(null); setPlacar({ a:'', b:'' })
-    await calcularPontos(match, pa, pb, vencedor)
+
+    setEditMatch(null)
+    setPlacar({ a:'', b:'', penaltis:false, penaltis_a:'', penaltis_b:'' })
+    await calcularPontos(match, pa, pb, vencedor, comPenaltis)
     await loadAll(); setLoading(false)
   }
 
-  async function calcularPontos(match, pa, pb, vencedor) {
+  async function calcularPontos(match, pa, pb, vencedor, comPenaltis) {
     const { data: picks } = await supabase.from('picks')
       .select('user_id, team_id')
       .in('team_id', [match.team_a_id, match.team_b_id])
@@ -159,15 +251,18 @@ export default function Admin() {
       const isTeamA = pick.team_id === match.team_a_id
       const teamScore = isTeamA ? pa : pb
       const opponentScore = isTeamA ? pb : pa
-
       let pontos = 0, tipo = '', desc = ''
+
       if (match.fase === 'grupos') {
         if (teamScore > opponentScore) { pontos = 3; tipo = 'vitoria_grupo'; desc = 'Vitoria na fase de grupos +3pts' }
         else if (teamScore === opponentScore) { pontos = 1; tipo = 'empate_grupo'; desc = 'Empate na fase de grupos +1pt' }
-        else { pontos = 0; tipo = 'derrota_grupo'; desc = 'Derrota na fase de grupos' }
       } else {
         if (pick.team_id === vencedor) {
-          pontos = 3; tipo = 'mata_mata_normal'; desc = 'Avancou no mata-mata +3pts'
+          if (comPenaltis) {
+            pontos = 1; tipo = 'mata_mata_penaltis'; desc = `Avancou nos pênaltis (${match.fase}) +1pt`
+          } else {
+            pontos = 3; tipo = 'mata_mata_normal'; desc = `Avancou no tempo normal (${match.fase}) +3pts`
+          }
         }
       }
 
@@ -190,23 +285,20 @@ export default function Admin() {
       { id:'A', texto: quiz.a }, { id:'B', texto: quiz.b },
       { id:'C', texto: quiz.c }, { id:'D', texto: quiz.d },
     ].filter(x => x.texto)
-    const expiracaoBonus = new Date(Date.now() + 100*60*1000).toISOString() // 100 minutos
+    const expiracaoBonus = new Date(Date.now() + 100*60*1000).toISOString()
     const expiracaoNormal = quiz.expira || new Date(Date.now() + 24*60*60*1000).toISOString()
     await supabase.from('quizzes').insert({
-      pergunta: quiz.pergunta,
-      alternativas,
-      resposta_correta: quiz.correta,
-      publicado: true,
+      pergunta: quiz.pergunta, alternativas,
+      resposta_correta: quiz.correta, publicado: true,
       publicado_em: new Date().toISOString(),
       expira_em: tipoNovoQuiz === 'bonus' ? expiracaoBonus : expiracaoNormal,
       tipo: tipoNovoQuiz,
     })
     setQuiz({ pergunta:'', a:'', b:'', c:'', d:'', correta:'A', expira:'' })
-    setTipoNovoQuiz('normal')
-    setNewQuiz(false); loadAll(); setLoading(false)
+    setTipoNovoQuiz('normal'); setNewQuiz(false); loadAll(); setLoading(false)
   }
 
-  const FASE_LABEL = { grupos:'Grupos', oitavas:'Oitavas', quartas:'Quartas', semi:'Semi', final:'Final' }
+  const FASE_LABEL = { grupos:'Grupos', oitavas:'Oitavas', quartas:'Quartas', semi:'Semi', final:'Final', dezasseis:'16 avos', terceiro_lugar:'3º Lugar' }
 
   const formatData = (dt) => {
     const d = new Date(dt)
@@ -216,17 +308,21 @@ export default function Admin() {
     }
   }
 
-  const teamsFiltered = allTeams.filter(t =>
-    t.nome.toLowerCase().includes(teamSearch.toLowerCase())
-  )
+  const teamsFiltered = allTeams.filter(t => t.nome.toLowerCase().includes(teamSearch.toLowerCase()))
+
+  // Separa partidas por fase
+  const partidasGrupos = matches.filter(m => m.fase === 'grupos')
+  const partidasMataaMata = matches.filter(m => m.fase !== 'grupos')
+  const gruposCompletos = Object.keys(grupos).every(g => {
+    const times = grupos[g]
+    return times.every(t => classificacoes[t.id])
+  })
 
   if (autorizado === null) return (
-    <div style={{background:'#080d0a', minHeight:'100vh', display:'flex',
-      alignItems:'center', justifyContent:'center', color:'#00C853', fontSize:18}}>
+    <div style={{background:'#080d0a', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'#00C853', fontSize:18}}>
       Verificando acesso...
     </div>
   )
-
   if (!autorizado) return null
 
   return (
@@ -261,82 +357,254 @@ export default function Admin() {
 
         {/* TABS */}
         <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
-          {[['partidas','⚽ Partidas'],['participantes','👥 Participantes'],['quizzes','🧠 Quizzes'],['notif','🔔 Notificacoes']].map(([id,label]) => (
+          {[
+            ['partidas','⚽ Partidas'],
+            ['grupos','🏆 Grupos'],
+            ['participantes','👥 Participantes'],
+            ['quizzes','🧠 Quizzes'],
+            ['notif','🔔 Notificacoes']
+          ].map(([id,label]) => (
             <button key={id} style={s.tab(tab===id)} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
 
-        {/* PARTIDAS */}
+        {/* ===================== PARTIDAS ===================== */}
         {tab==='partidas' && (
-          <div style={s.card}>
-            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Lancar Resultados</div>
-            {matches.length === 0 ? (
-              <p style={{ color:"#6b8a62", fontSize:14 }}>Nenhuma partida cadastrada ainda.</p>
-            ) : (
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={s.th}>Data</th>
-                      <th style={s.th}>Partida</th>
-                      <th style={s.th}>Fase</th>
-                      <th style={s.th}>Placar</th>
-                      <th style={s.th}>Status</th>
-                      <th style={s.th}>Acao</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matches.map(m => {
-                      const { data, hora } = formatData(m.data_hora)
-                      return (
-                        <tr key={m.id}>
-                          <td style={s.td}>
-                            <div style={{ fontSize:13, fontWeight:600 }}>{data}</div>
-                            <div style={{ fontSize:12, color:"#6b8a62" }}>{hora}</div>
-                          </td>
-                          <td style={s.td}><strong>{m.team_a?.nome}</strong> vs <strong>{m.team_b?.nome}</strong></td>
-                          <td style={s.td}><span style={{ color:"#6b8a62" }}>{FASE_LABEL[m.fase]||m.fase}</span></td>
-                          <td style={s.td}>
-                            {editMatch===m.id ? (
-                              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                                <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.a} onChange={e=>setPlacar({...placar,a:e.target.value})} placeholder="0"/>
-                                <span style={{ color:"#6b8a62" }}>x</span>
-                                <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.b} onChange={e=>setPlacar({...placar,b:e.target.value})} placeholder="0"/>
-                              </div>
-                            ) : (
-                              <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, color: m.status==='encerrado'?"#00C853":"#6b8a62" }}>
-                                {m.status==='encerrado' ? `${m.placar_a} x ${m.placar_b}` : '- x -'}
+          <div>
+            {/* FASE DE GRUPOS — colapsada se todos encerrados */}
+            <div style={s.card}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: partidasGrupos.some(m => m.status !== 'encerrado') ? 16 : 0 }}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700 }}>
+                  ⚽ Fase de Grupos
+                </div>
+                <span style={{ fontSize:12, color: partidasGrupos.every(m => m.status === 'encerrado') ? "#00C853" : "#FFD700", fontWeight:700 }}>
+                  {partidasGrupos.filter(m => m.status === 'encerrado').length}/{partidasGrupos.length} encerrados
+                </span>
+              </div>
+
+              {/* Só mostra tabela se tiver jogos pendentes */}
+              {partidasGrupos.some(m => m.status !== 'encerrado') && (
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={s.th}>Data</th>
+                        <th style={s.th}>Partida</th>
+                        <th style={s.th}>Placar</th>
+                        <th style={s.th}>Status</th>
+                        <th style={s.th}>Acao</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partidasGrupos.filter(m => m.status !== 'encerrado').map(m => {
+                        const { data, hora } = formatData(m.data_hora)
+                        return (
+                          <tr key={m.id}>
+                            <td style={s.td}>
+                              <div style={{ fontSize:13, fontWeight:600 }}>{data}</div>
+                              <div style={{ fontSize:12, color:"#6b8a62" }}>{hora}</div>
+                            </td>
+                            <td style={s.td}><strong>{m.team_a?.nome}</strong> vs <strong>{m.team_b?.nome}</strong></td>
+                            <td style={s.td}>
+                              {editMatch===m.id ? (
+                                <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                                  <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.a} onChange={e=>setPlacar({...placar,a:e.target.value})} placeholder="0"/>
+                                  <span style={{ color:"#6b8a62" }}>x</span>
+                                  <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.b} onChange={e=>setPlacar({...placar,b:e.target.value})} placeholder="0"/>
+                                </div>
+                              ) : (
+                                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, color:"#6b8a62" }}>- x -</span>
+                              )}
+                            </td>
+                            <td style={s.td}>
+                              <span style={{ background:"rgba(255,255,255,.06)", color:"#6b8a62", border:"1px solid rgba(255,255,255,.1)", borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
+                                {m.status}
                               </span>
-                            )}
-                          </td>
-                          <td style={s.td}>
-                            <span style={{ background: m.status==='encerrado'?"rgba(0,200,83,.12)":"rgba(255,255,255,.06)", color: m.status==='encerrado'?"#00C853":"#6b8a62", border: `1px solid ${m.status==='encerrado'?"rgba(0,200,83,.25)":"rgba(255,255,255,.1)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
-                              {m.status}
-                            </span>
-                          </td>
-                          <td style={s.td}>
-                            {m.status !== 'encerrado' && (
-                              editMatch===m.id ? (
+                            </td>
+                            <td style={s.td}>
+                              {editMatch===m.id ? (
                                 <div style={{ display:"flex", gap:6 }}>
                                   <button style={s.btn} onClick={()=>lancarResultado(m)} disabled={loading}>SALVAR</button>
                                   <button style={s.btnOut} onClick={()=>setEditMatch(null)}>X</button>
                                 </div>
                               ) : (
-                                <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:''}) }}>LANCAR</button>
-                              )
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                                <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:'',penaltis:false,penaltis_a:'',penaltis_b:''}) }}>LANCAR</button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Se todos os jogos de grupos estão encerrados, mostra resumo */}
+              {partidasGrupos.length > 0 && partidasGrupos.every(m => m.status === 'encerrado') && (
+                <div style={{ color:"#00C853", fontSize:14, display:"flex", alignItems:"center", gap:8 }}>
+                  ✅ Todos os jogos da fase de grupos foram encerrados! Vá para a aba <strong>🏆 Grupos</strong> para definir as classificações.
+                </div>
+              )}
+            </div>
+
+            {/* MATA-MATA */}
+            {partidasMataaMata.length > 0 && (
+              <div style={s.card}>
+                <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>
+                  ⚔️ Mata-Mata
+                </div>
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={s.th}>Data</th>
+                        <th style={s.th}>Fase</th>
+                        <th style={s.th}>Partida</th>
+                        <th style={s.th}>Placar</th>
+                        <th style={s.th}>Status</th>
+                        <th style={s.th}>Acao</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partidasMataaMata.map(m => {
+                        const { data, hora } = formatData(m.data_hora)
+                        return (
+                          <tr key={m.id}>
+                            <td style={s.td}>
+                              <div style={{ fontSize:13, fontWeight:600 }}>{data}</div>
+                              <div style={{ fontSize:12, color:"#6b8a62" }}>{hora}</div>
+                            </td>
+                            <td style={s.td}>
+                              <span style={{ background:"rgba(255,215,0,.1)", color:"#FFD700", border:"1px solid rgba(255,215,0,.2)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 }}>
+                                {FASE_LABEL[m.fase]||m.fase}
+                              </span>
+                            </td>
+                            <td style={s.td}><strong>{m.team_a?.nome}</strong> vs <strong>{m.team_b?.nome}</strong></td>
+                            <td style={s.td}>
+                              {editMatch===m.id ? (
+                                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                                    <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.a} onChange={e=>setPlacar({...placar,a:e.target.value})} placeholder="0"/>
+                                    <span style={{ color:"#6b8a62" }}>x</span>
+                                    <input style={{ ...s.input, width:48, textAlign:"center" }} value={placar.b} onChange={e=>setPlacar({...placar,b:e.target.value})} placeholder="0"/>
+                                  </div>
+                                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                    <input type="checkbox" id={`pen-${m.id}`} checked={placar.penaltis}
+                                      onChange={e=>setPlacar({...placar,penaltis:e.target.checked})}/>
+                                    <label htmlFor={`pen-${m.id}`} style={{ fontSize:12, color:"#FFD700", cursor:"pointer" }}>Foi para pênaltis?</label>
+                                  </div>
+                                  {placar.penaltis && (
+                                    <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                                      <span style={{ fontSize:11, color:"#6b8a62" }}>PEN:</span>
+                                      <input style={{ ...s.input, width:44, textAlign:"center", fontSize:12 }} value={placar.penaltis_a} onChange={e=>setPlacar({...placar,penaltis_a:e.target.value})} placeholder="0"/>
+                                      <span style={{ color:"#6b8a62" }}>x</span>
+                                      <input style={{ ...s.input, width:44, textAlign:"center", fontSize:12 }} value={placar.penaltis_b} onChange={e=>setPlacar({...placar,penaltis_b:e.target.value})} placeholder="0"/>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, color: m.status==='encerrado'?"#00C853":"#6b8a62" }}>
+                                    {m.status==='encerrado' ? `${m.placar_a} x ${m.placar_b}` : '- x -'}
+                                  </span>
+                                  {m.passou_penaltis && m.penaltis_a !== null && (
+                                    <div style={{ fontSize:11, color:"#FFD700" }}>Pên: {m.penaltis_a} x {m.penaltis_b}</div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td style={s.td}>
+                              <span style={{ background: m.status==='encerrado'?"rgba(0,200,83,.12)":"rgba(255,255,255,.06)", color: m.status==='encerrado'?"#00C853":"#6b8a62", border:`1px solid ${m.status==='encerrado'?"rgba(0,200,83,.25)":"rgba(255,255,255,.1)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
+                                {m.status}
+                              </span>
+                            </td>
+                            <td style={s.td}>
+                              {m.status !== 'encerrado' && (
+                                editMatch===m.id ? (
+                                  <div style={{ display:"flex", gap:6 }}>
+                                    <button style={s.btn} onClick={()=>lancarResultado(m)} disabled={loading}>SALVAR</button>
+                                    <button style={s.btnOut} onClick={()=>setEditMatch(null)}>X</button>
+                                  </div>
+                                ) : (
+                                  <button style={s.btnOut} onClick={()=>{ setEditMatch(m.id); setPlacar({a:'',b:'',penaltis:false,penaltis_a:'',penaltis_b:''}) }}>LANCAR</button>
+                                )
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* PARTICIPANTES */}
+        {/* ===================== GRUPOS & CLASSIFICAÇÃO ===================== */}
+        {tab==='grupos' && (
+          <div>
+            <div style={{ background:"rgba(255,215,0,.07)", border:"1px solid rgba(255,215,0,.2)", borderRadius:12, padding:"14px 18px", marginBottom:20, fontSize:13 }}>
+              <strong style={{ color:"#FFD700" }}>Como funciona:</strong> Defina a posição final de cada time no grupo.
+              Ao salvar, os pontos de classificação serão distribuídos automaticamente:
+              🥇 1º = +5pts · 🥈 2º = +3pts · 🥉 3º (passa) = +1pt · ❌ Eliminado = 0pts
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))", gap:16, marginBottom:20 }}>
+              {Object.entries(grupos).sort().map(([grupo, times]) => (
+                <div key={grupo} style={s.card}>
+                  <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:16, fontWeight:700, letterSpacing:2, color:"#00C853", marginBottom:12 }}>
+                    GRUPO {grupo}
+                  </div>
+                  {times.map(t => {
+                    const pos = classificacoes[t.id]
+                    return (
+                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10, padding:"8px 12px", background:"rgba(255,255,255,.03)", borderRadius:10 }}>
+                        <span style={{ fontSize:20 }}>{BANDEIRAS[t.nome] || '🏴'}</span>
+                        <div style={{ flex:1, fontSize:14, fontWeight:600 }}>{t.nome}</div>
+                        <div style={{ display:"flex", gap:4 }}>
+                          {[1,2,3,4].map(p => (
+                            <button key={p} onClick={() => setClassif(t.id, p)}
+                              style={{
+                                width:32, height:32, borderRadius:8, border:"none", cursor:"pointer",
+                                fontFamily:"'Barlow Condensed', sans-serif", fontSize:13, fontWeight:700,
+                                background: pos === p ? CLASSIFICACAO_COR[p] : "rgba(255,255,255,.08)",
+                                color: pos === p ? "#080d0a" : "#6b8a62",
+                                transition:"all .15s"
+                              }}>
+                              {p === 4 ? '✕' : p+'º'}
+                            </button>
+                          ))}
+                        </div>
+                        {pos && (
+                          <span style={{ fontSize:11, color: CLASSIFICACAO_COR[pos], fontWeight:700, minWidth:60 }}>
+                            {pos < 4 ? `+${CLASSIFICACAO_PTS[pos]}pts` : '0pts'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {classificMsg && (
+              <div style={{ background: classificMsg.includes('✅') ? "rgba(0,200,83,.1)" : "rgba(255,70,70,.1)",
+                border:`1px solid ${classificMsg.includes('✅') ? "rgba(0,200,83,.3)" : "rgba(255,70,70,.3)"}`,
+                borderRadius:10, padding:"12px 16px", marginBottom:16, fontSize:14,
+                color: classificMsg.includes('✅') ? "#00C853" : "#ff7070" }}>
+                {classificMsg}
+              </div>
+            )}
+
+            <button style={{ ...s.btn, padding:"14px 32px", fontSize:16 }}
+              onClick={salvarClassificacoes} disabled={savingClassif}>
+              {savingClassif ? 'Salvando...' : '💾 SALVAR CLASSIFICAÇÕES E DISTRIBUIR PONTOS'}
+            </button>
+          </div>
+        )}
+
+        {/* ===================== PARTICIPANTES ===================== */}
         {tab==='participantes' && (
           <div style={s.card}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>
@@ -377,7 +645,7 @@ export default function Admin() {
                           )}
                         </td>
                         <td style={s.td}>
-                          <span style={{ background: u.status==='ativo'?"rgba(0,200,83,.12)":"rgba(255,215,0,.1)", color: u.status==='ativo'?"#00C853":"#FFD700", border: `1px solid ${u.status==='ativo'?"rgba(0,200,83,.25)":"rgba(255,215,0,.25)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
+                          <span style={{ background: u.status==='ativo'?"rgba(0,200,83,.12)":"rgba(255,215,0,.1)", color: u.status==='ativo'?"#00C853":"#FFD700", border:`1px solid ${u.status==='ativo'?"rgba(0,200,83,.25)":"rgba(255,215,0,.25)"}`, borderRadius:20, padding:"3px 10px", fontSize:12, fontWeight:700 }}>
                             {u.status}
                           </span>
                         </td>
@@ -387,9 +655,7 @@ export default function Admin() {
                               <button style={s.btn} onClick={() => ativarUsuario(u.id)}>ATIVAR</button>
                             )}
                             {semSelecoes && (
-                              <button style={s.btnYellow} onClick={() => abrirModalInscrever(u)}>
-                                + INSCREVER
-                              </button>
+                              <button style={s.btnYellow} onClick={() => abrirModalInscrever(u)}>+ INSCREVER</button>
                             )}
                           </div>
                         </td>
@@ -402,17 +668,12 @@ export default function Admin() {
           </div>
         )}
 
-        {/* QUIZZES */}
+        {/* ===================== QUIZZES ===================== */}
         {tab==='quizzes' && (
           <div>
             <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
-              <button style={s.btn} onClick={() => { setTipoNovoQuiz('normal'); setNewQuiz(true) }}>
-                + CRIAR QUIZ NORMAL
-              </button>
-              <button style={{ ...s.btn, background:"#FFD700", color:"#080d0a" }}
-                onClick={() => { setTipoNovoQuiz('bonus'); setNewQuiz(true) }}>
-                ⚡ CRIAR QUIZ PRÊMIO EXTRA
-              </button>
+              <button style={s.btn} onClick={() => { setTipoNovoQuiz('normal'); setNewQuiz(true) }}>+ CRIAR QUIZ NORMAL</button>
+              <button style={{ ...s.btn, background:"#FFD700", color:"#080d0a" }} onClick={() => { setTipoNovoQuiz('bonus'); setNewQuiz(true) }}>⚡ CRIAR QUIZ PRÊMIO EXTRA</button>
             </div>
             {newQuiz && (
               <div style={s.card}>
@@ -478,7 +739,7 @@ export default function Admin() {
           </div>
         )}
 
-        {/* NOTIFICACOES */}
+        {/* ===================== NOTIFICACOES ===================== */}
         {tab==='notif' && (
           <div style={s.card}>
             <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:18, fontWeight:700, marginBottom:16 }}>Enviar Notificacao</div>
@@ -505,8 +766,6 @@ export default function Admin() {
       {modalUser && (
         <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) fecharModal() }}>
           <div style={s.modal}>
-
-            {/* Cabeçalho */}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
               <div>
                 <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:"#6b8a62", marginBottom:4 }}>INSCREVENDO SELEÇÕES PARA</div>
@@ -514,55 +773,31 @@ export default function Admin() {
               </div>
               <button style={{ background:"none", border:"none", color:"#6b8a62", fontSize:22, cursor:"pointer", lineHeight:1 }} onClick={fecharModal}>✕</button>
             </div>
-
-            {/* Selecionadas */}
             <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:12, color:"#6b8a62", fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>
-                Selecionadas ({modalPicks.length}/3)
-              </div>
+              <div style={{ fontSize:12, color:"#6b8a62", fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Selecionadas ({modalPicks.length}/3)</div>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap", minHeight:36 }}>
                 {modalPicks.length === 0 ? (
                   <span style={{ fontSize:13, color:"rgba(255,255,255,.2)" }}>Nenhuma seleção escolhida ainda</span>
                 ) : modalPicks.map(t => (
-                  <span key={t.id}
-                    onClick={() => toggleModalPick(t)}
+                  <span key={t.id} onClick={() => toggleModalPick(t)}
                     style={{ background:"rgba(0,200,83,.15)", border:"1px solid rgba(0,200,83,.4)", borderRadius:20, padding:"4px 12px", fontSize:13, color:"#00C853", fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
                     {t.nome} <span style={{ opacity:.6, fontSize:11 }}>✕</span>
                   </span>
                 ))}
               </div>
             </div>
-
-            {/* Busca */}
-            <input
-              style={{ ...s.input, width:"100%", marginBottom:12, boxSizing:"border-box" }}
-              placeholder="Buscar seleção..."
-              value={teamSearch}
-              onChange={e => { setTeamSearch(e.target.value); setPickError('') }}
-            />
-
-            {/* Lista de times */}
+            <input style={{ ...s.input, width:"100%", marginBottom:12, boxSizing:"border-box" }}
+              placeholder="Buscar seleção..." value={teamSearch}
+              onChange={e => { setTeamSearch(e.target.value); setPickError('') }}/>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, maxHeight:280, overflowY:"auto", marginBottom:16 }}>
               {teamsFiltered.map(t => {
                 const selecionado = !!modalPicks.find(p => p.id === t.id)
                 const desabilitado = !selecionado && modalPicks.length >= 3
                 return (
-                  <div key={t.id}
-                    onClick={() => !desabilitado && toggleModalPick(t)}
-                    style={{
-                      background: selecionado ? "rgba(0,200,83,.15)" : "rgba(255,255,255,.04)",
-                      border: `1.5px solid ${selecionado ? "rgba(0,200,83,.5)" : "rgba(255,255,255,.08)"}`,
-                      borderRadius:10,
-                      padding:"10px 14px",
-                      cursor: desabilitado ? "not-allowed" : "pointer",
-                      opacity: desabilitado ? 0.4 : 1,
-                      display:"flex",
-                      alignItems:"center",
-                      justifyContent:"space-between",
-                      transition:"all .15s"
-                    }}>
+                  <div key={t.id} onClick={() => !desabilitado && toggleModalPick(t)}
+                    style={{ background: selecionado?"rgba(0,200,83,.15)":"rgba(255,255,255,.04)", border:`1.5px solid ${selecionado?"rgba(0,200,83,.5)":"rgba(255,255,255,.08)"}`, borderRadius:10, padding:"10px 14px", cursor:desabilitado?"not-allowed":"pointer", opacity:desabilitado?0.4:1, display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .15s" }}>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color: selecionado ? "#00C853" : "#dff0d8" }}>{t.nome}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:selecionado?"#00C853":"#dff0d8" }}>{t.nome}</div>
                       {t.grupo && <div style={{ fontSize:11, color:"#6b8a62" }}>Grupo {t.grupo}</div>}
                     </div>
                     {selecionado && <span style={{ color:"#00C853", fontSize:16 }}>✓</span>}
@@ -570,23 +805,14 @@ export default function Admin() {
                 )
               })}
             </div>
-
-            {/* Erro */}
-            {pickError && (
-              <div style={{ color:"#ff7070", fontSize:13, marginBottom:12 }}>{pickError}</div>
-            )}
-
-            {/* Ações */}
+            {pickError && <div style={{ color:"#ff7070", fontSize:13, marginBottom:12 }}>{pickError}</div>}
             <div style={{ display:"flex", gap:10 }}>
               <button style={{ ...s.btnOut, flex:1 }} onClick={fecharModal}>CANCELAR</button>
-              <button
-                style={{ ...s.btn, flex:2, opacity: modalPicks.length !== 3 ? 0.5 : 1 }}
-                onClick={salvarPicksAdmin}
-                disabled={savingPicks || modalPicks.length !== 3}>
-                {savingPicks ? 'SALVANDO...' : `CONFIRMAR ${modalPicks.length === 3 ? '✓' : `(${modalPicks.length}/3)`}`}
+              <button style={{ ...s.btn, flex:2, opacity:modalPicks.length!==3?0.5:1 }}
+                onClick={salvarPicksAdmin} disabled={savingPicks||modalPicks.length!==3}>
+                {savingPicks ? 'SALVANDO...' : `CONFIRMAR ${modalPicks.length===3?'✓':`(${modalPicks.length}/3)`}`}
               </button>
             </div>
-
           </div>
         </div>
       )}
