@@ -123,7 +123,11 @@ export default function Quiz() {
     }, 1000)
   }
 
+  const registrandoRef = useRef({})
+
   async function registrarRespostaBonus(userId, quizId, alternativaId, motivo, quizObj) {
+    if (registrandoRef.current[quizId]) return
+    registrandoRef.current[quizId] = true
     const quiz = quizObj || quizzes.find(q => q.id === quizId)
     let pontos = 1
     let acertou = false
@@ -146,6 +150,11 @@ export default function Quiz() {
     clearInterval(intervalsRef.current[quizId])
 
     if (pontos > 0) {
+      const { data: jaExiste } = await supabase
+        .from('points_log').select('id')
+        .eq('user_id', userId).eq('quiz_id', quizId)
+        .eq('tipo', 'quiz_bonus').limit(1)
+      if (jaExiste && jaExiste.length > 0) return
       await supabase.from('points_log').insert({
         user_id: userId,
         quiz_id: quizId,
