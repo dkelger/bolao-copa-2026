@@ -45,16 +45,12 @@ export default function Landing() {
     supabase
       .from('matches')
       .select('*, team_a:teams!matches_team_a_id_fkey(nome, grupo), team_b:teams!matches_team_b_id_fkey(nome, grupo)')
-      .eq('fase', 'grupos')
+      .eq('fase', 'dezasseis')
       .order('data_hora')
       .then(({ data }) => setPartidas(data || []))
   }, [])
 
-  const grupos = ['todos', ...Array.from(new Set(partidas.map(p => p.team_a?.grupo).filter(Boolean))).sort()]
-
-  const partidasFiltradas = grupoAtivo === 'todos'
-    ? partidas
-    : partidas.filter(p => p.team_a?.grupo === grupoAtivo || p.team_b?.grupo === grupoAtivo)
+  const partidasFiltradas = partidas
 
   const formatData = (dt) => {
     const d = new Date(dt)
@@ -287,25 +283,7 @@ export default function Landing() {
               fontWeight:700, letterSpacing:3, color:"#00C853",
               textTransform:"uppercase", marginBottom:8}}>calendário</div>
             <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
-              color:"white", letterSpacing:3, margin:"0 0 24px"}}>FASE DE GRUPOS</h2>
-
-            {/* Filtro por grupo */}
-            <div style={{display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap"}}>
-              {grupos.map(g => (
-                <button key={g} className="grupo-tab"
-                  onClick={() => setGrupoAtivo(g)}
-                  style={{
-                    fontFamily:"'Barlow Condensed', sans-serif", fontSize:12,
-                    fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
-                    padding:"6px 16px", borderRadius:20, cursor:"pointer",
-                    border: grupoAtivo === g ? "none" : "1px solid rgba(0,200,83,.16)",
-                    background: grupoAtivo === g ? "#00C853" : "transparent",
-                    color: grupoAtivo === g ? "#080d0a" : "#6b8a62",
-                  }}>
-                  {g === 'todos' ? 'Todos' : `Grupo ${g}`}
-                </button>
-              ))}
-            </div>
+              color:"white", letterSpacing:3, margin:0}}>16 AVOS DE FINAL</h2>
           </div>
 
           <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:12}}>
@@ -323,8 +301,8 @@ export default function Landing() {
                   {/* Cabeçalho */}
                   <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14}}>
                     <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
-                      fontWeight:700, letterSpacing:1.5, color:"#6b8a62", textTransform:"uppercase"}}>
-                      Grupo {m.team_a?.grupo}
+                      fontWeight:700, letterSpacing:1.5, color:"#FFD700", textTransform:"uppercase"}}>
+                      ⚔️ 16 avos de final
                     </div>
                     <div style={{display:"flex", alignItems:"center", gap:6}}>
                       {encerrado ? (
