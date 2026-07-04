@@ -22,6 +22,7 @@ const BANDEIRAS = {
 const TIPOS_GRUPO = ['vitoria_grupo','empate_grupo','derrota_grupo']
 const TIPOS_CLASSIF = ['classificacao_grupo']
 const TIPOS_MATA = ['mata_mata_normal','mata_mata_penaltis']
+const FASES_MATA = ['dezasseis','oitavas','quartas','semi','final']
 
 export default function Ranking() {
   const navigate = useNavigate()
@@ -44,7 +45,7 @@ export default function Ranking() {
   async function loadRanking() {
     const [{ data: users }, { data: pts }, { data: picks }] = await Promise.all([
       supabase.from('users').select('id, nome, status').neq('status', 'admin'),
-      supabase.from('points_log').select('user_id, team_id, pontos, tipo'),
+      supabase.from('points_log').select('user_id, team_id, pontos, tipo, fase'),
       supabase.from('picks').select('user_id, team_id, teams(nome)'),
     ])
 
@@ -57,7 +58,11 @@ export default function Ranking() {
         total: 0,
         jogosGrupo: 0,    // vitoria/empate fase grupos
         classif: 0,        // classificacao_grupo (1º/2º/3º)
-        mataMata: 0,       // mata-mata normal/penaltis
+        dezasseis: 0,      // 16 avos
+        oitavas: 0,        // oitavas
+        quartas: 0,        // quartas
+        semi: 0,           // semifinal
+        final: 0,          // final
         quiz: 0,           // quiz normal
         quizBonus: 0,      // quiz bonus
         picks: []
@@ -72,7 +77,9 @@ export default function Ranking() {
       if (row.tipo === 'quiz_bonus') map[row.user_id].quizBonus += p
       if (row.tipo === 'classificacao_grupo') map[row.user_id].classif += p
       if (TIPOS_GRUPO.includes(row.tipo)) map[row.user_id].jogosGrupo += p
-      if (TIPOS_MATA.includes(row.tipo)) map[row.user_id].mataMata += p
+      if (TIPOS_MATA.includes(row.tipo) && row.fase && map[row.user_id][row.fase] !== undefined) {
+        map[row.user_id][row.fase] += p
+      }
     })
 
     // Pontos por time — separado por categoria
@@ -89,6 +96,11 @@ export default function Ranking() {
       if (TIPOS_GRUPO.includes(row.tipo)) ptsGrupoPerTeam[key] = (ptsGrupoPerTeam[key] || 0) + p
       if (TIPOS_CLASSIF.includes(row.tipo)) ptsClassifPerTeam[key] = (ptsClassifPerTeam[key] || 0) + p
       if (TIPOS_MATA.includes(row.tipo)) ptsMataMataPerTeam[key] = (ptsMataMataPerTeam[key] || 0) + p
+      // por fase
+      if (TIPOS_MATA.includes(row.tipo) && row.fase) {
+        const faseKey = `${key}__${row.fase}`
+        ptsMataMataPerTeam[faseKey] = (ptsMataMataPerTeam[faseKey] || 0) + p
+      }
     })
 
     ;(picks || []).forEach(p => {
@@ -199,7 +211,11 @@ export default function Ranking() {
                 const tags = []
                 if (r.jogosGrupo > 0) tags.push({ label:`⚽ ${r.jogosGrupo.toFixed(1)}`, cor:'#6b8a62' })
                 if (r.classif > 0) tags.push({ label:`🏆 ${r.classif.toFixed(1)}`, cor:'#b0b0b0' })
-                if (r.mataMata > 0) tags.push({ label:`⚔️ ${r.mataMata.toFixed(1)}`, cor:'#ff8c00' })
+                if (r.dezasseis > 0) tags.push({ label:`⚔️16 ${r.dezasseis.toFixed(1)}`, cor:'#00C853' })
+                if (r.oitavas > 0) tags.push({ label:`⚔️8 ${r.oitavas.toFixed(1)}`, cor:'#4fc3f7' })
+                if (r.quartas > 0) tags.push({ label:`⚔️4 ${r.quartas.toFixed(1)}`, cor:'#ff8c00' })
+                if (r.semi > 0) tags.push({ label:`⚔️2 ${r.semi.toFixed(1)}`, cor:'#ff4444' })
+                if (r.final > 0) tags.push({ label:`🏅 ${r.final.toFixed(1)}`, cor:'#FFD700' })
                 if (r.quiz > 0) tags.push({ label:`🧠 ${r.quiz.toFixed(1)}`, cor:'#00C853' })
                 if (r.quizBonus > 0) tags.push({ label:`⚡ ${r.quizBonus.toFixed(1)}`, cor:'#FFD700' })
 
@@ -327,7 +343,11 @@ export default function Ranking() {
                             { label:"TOTAL", val: r.total.toFixed(1), cor:"#dff0d8", show: true },
                             { label:"⚽ GRUPOS", val: r.jogosGrupo.toFixed(1), cor:"#6b8a62", show: r.jogosGrupo > 0 },
                             { label:"🏆 CLASSIF", val: r.classif.toFixed(1), cor:"#b0b0b0", show: r.classif > 0 },
-                            { label:"⚔️ MATA-MATA", val: r.mataMata.toFixed(1), cor:"#ff8c00", show: r.mataMata > 0 },
+                            { label:"⚔️ 16 AVOS", val: r.dezasseis.toFixed(1), cor:"#00C853", show: r.dezasseis > 0 },
+                            { label:"⚔️ OITAVAS", val: r.oitavas.toFixed(1), cor:"#4fc3f7", show: r.oitavas > 0 },
+                            { label:"⚔️ QUARTAS", val: r.quartas.toFixed(1), cor:"#ff8c00", show: r.quartas > 0 },
+                            { label:"⚔️ SEMI", val: r.semi.toFixed(1), cor:"#ff4444", show: r.semi > 0 },
+                            { label:"🏅 FINAL", val: r.final.toFixed(1), cor:"#FFD700", show: r.final > 0 },
                             { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853", show: r.quiz > 0 },
                             { label:"⚡ BÔNUS", val: r.quizBonus.toFixed(1), cor:"#FFD700", show: r.quizBonus > 0 },
                           ].filter(x => x.show).map(item => (

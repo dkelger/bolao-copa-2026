@@ -114,8 +114,6 @@ export default function Admin() {
     setQuizzes(q || [])
     setPicks(p || [])
     setAllTeams(t || [])
-        const temDezasseis = (m || []).some(x => x.fase === 'dezasseis')
-        setJogosGerados(!!temDezasseis)
 
     const classifMap = {}
     ;(t || []).forEach(team => { if (team.classificacao) classifMap[team.id] = team.classificacao })
@@ -123,7 +121,7 @@ export default function Admin() {
 
     // Verifica se jogos dos 16 avos já foram gerados
     const temDezesseis = (m || []).some(x => x.fase === 'dezasseis')
-  
+    setJogosGerados(temDezasseis)
 
     const naoAdmin = (u || []).filter(x => x.status !== 'admin')
     const ativos = naoAdmin.filter(x => x.status === 'ativo').length
@@ -370,7 +368,7 @@ export default function Admin() {
           else { pontos = 3; tipo = 'mata_mata_normal'; desc = `Avancou no tempo normal (${match.fase}) +3pts` }
         }
       }
-      if (pontos > 0) logs.push({ user_id: pick.user_id, team_id: pick.team_id, match_id: match.id, tipo, pontos, descricao: desc })
+      if (pontos > 0) logs.push({ user_id: pick.user_id, team_id: pick.team_id, match_id: match.id, tipo, pontos, descricao: desc, fase: match.fase })
     }
     if (logs.length > 0) await supabase.from('points_log').insert(logs)
   }
