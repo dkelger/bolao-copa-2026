@@ -45,7 +45,7 @@ export default function Landing() {
     supabase
       .from('matches')
       .select('*, team_a:teams!matches_team_a_id_fkey(nome, grupo), team_b:teams!matches_team_b_id_fkey(nome, grupo)')
-      .eq('fase', 'dezasseis')
+      .eq('fase', 'oitavas')
       .order('data_hora')
       .then(({ data }) => setPartidas(data || []))
   }, [])
@@ -283,7 +283,7 @@ export default function Landing() {
               fontWeight:700, letterSpacing:3, color:"#00C853",
               textTransform:"uppercase", marginBottom:8}}>calendário</div>
             <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
-              color:"white", letterSpacing:3, margin:0}}>16 AVOS DE FINAL</h2>
+              color:"white", letterSpacing:3, margin:0}}>OITAVAS DE FINAL</h2>
           </div>
 
           <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:12}}>
@@ -302,7 +302,7 @@ export default function Landing() {
                   <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14}}>
                     <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
                       fontWeight:700, letterSpacing:1.5, color:"#FFD700", textTransform:"uppercase"}}>
-                      ⚔️ 16 avos de final
+                      ⚔️ Oitavas de final
                     </div>
                     <div style={{display:"flex", alignItems:"center", gap:6}}>
                       {encerrado ? (
