@@ -359,9 +359,20 @@ export default function Admin() {
       const teamScore = isTeamA ? pa : pb
       const opponentScore = isTeamA ? pb : pa
       let pontos = 0, tipo = '', desc = ''
+
       if (match.fase === 'grupos') {
         if (teamScore > opponentScore) { pontos = 3; tipo = 'vitoria_grupo'; desc = 'Vitoria na fase de grupos +3pts' }
         else if (teamScore === opponentScore) { pontos = 1; tipo = 'empate_grupo'; desc = 'Empate na fase de grupos +1pt' }
+      } else if (match.fase === 'terceiro_lugar') {
+        if (pick.team_id === vencedor) {
+          if (comPenaltis) { pontos = 1; tipo = 'terceiro_lugar'; desc = '3º lugar nos pênaltis +1pt' }
+          else { pontos = 3; tipo = 'terceiro_lugar'; desc = '3º lugar no tempo normal +3pts' }
+        }
+      } else if (match.fase === 'final') {
+        if (pick.team_id === vencedor) {
+          if (comPenaltis) { pontos = 3; tipo = 'campeao'; desc = 'Campeão nos pênaltis +3pts' }
+          else { pontos = 5; tipo = 'campeao'; desc = 'Campeão no tempo normal +5pts' }
+        }
       } else {
         if (pick.team_id === vencedor) {
           if (comPenaltis) { pontos = 1; tipo = 'mata_mata_penaltis'; desc = `Avancou nos pênaltis (${match.fase}) +1pt` }
