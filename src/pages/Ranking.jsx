@@ -64,6 +64,7 @@ export default function Ranking() {
         semi: 0,           // semifinal
         terceiro_lugar: 0, // 3º lugar
         campeao: 0,        // campeão
+        colocacao: 0,      // colocação final (1º/2º/3º)
         quiz: 0,           // quiz normal
         quizBonus: 0,      // quiz bonus
         picks: []
@@ -83,6 +84,7 @@ export default function Ranking() {
       }
       if (row.tipo === 'terceiro_lugar') map[row.user_id].terceiro_lugar += p
       if (row.tipo === 'campeao') map[row.user_id].campeao += p
+      if (row.tipo === 'colocacao_final') map[row.user_id].colocacao += p
     })
 
     // Pontos por time — separado por categoria
@@ -220,6 +222,7 @@ export default function Ranking() {
                 if (r.semi > 0) tags.push({ label:`⚔️2 ${r.semi.toFixed(1)}`, cor:'#ff4444' })
                 if (r.terceiro_lugar > 0) tags.push({ label:`🥉 ${r.terceiro_lugar.toFixed(1)}`, cor:'#cd7f32' })
                 if (r.campeao > 0) tags.push({ label:`🏆 ${r.campeao.toFixed(1)}`, cor:'#FFD700' })
+                if (r.colocacao > 0) tags.push({ label:`🎖️ ${r.colocacao.toFixed(1)}`, cor:'#fff' })
                 if (r.quiz > 0) tags.push({ label:`🧠 ${r.quiz.toFixed(1)}`, cor:'#00C853' })
                 if (r.quizBonus > 0) tags.push({ label:`⚡ ${r.quizBonus.toFixed(1)}`, cor:'#FFD700' })
 
@@ -353,6 +356,7 @@ export default function Ranking() {
                             { label:"⚔️ SEMI", val: r.semi.toFixed(1), cor:"#ff4444", show: r.semi > 0 },
                             { label:"🥉 3º LUGAR", val: r.terceiro_lugar.toFixed(1), cor:"#cd7f32", show: r.terceiro_lugar > 0 },
                             { label:"🏆 CAMPEÃO", val: r.campeao.toFixed(1), cor:"#FFD700", show: r.campeao > 0 },
+                            { label:"🎖️ COLOCAÇÃO", val: r.colocacao.toFixed(1), cor:"#fff", show: r.colocacao > 0 },
                             { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853", show: r.quiz > 0 },
                             { label:"⚡ BÔNUS", val: r.quizBonus.toFixed(1), cor:"#FFD700", show: r.quizBonus > 0 },
                           ].filter(x => x.show).map(item => (
