@@ -82,6 +82,9 @@ export default function Admin() {
   const [classificMsg, setClassificMsg] = useState('')
   const [gerandoJogos, setGerandoJogos] = useState(false)
   const [jogosGerados, setJogosGerados] = useState(false)
+  const [colocacaoFinal, setColocacaoFinal] = useState({ primeiro:'', segundo:'', terceiro:'' })
+  const [savingColocacao, setSavingColocacao] = useState(false)
+  const [colocacaoMsg, setColocacaoMsg] = useState('')
 
   // Modal inscrever seleções
   const [modalUser, setModalUser] = useState(null)
@@ -382,6 +385,37 @@ export default function Admin() {
       if (pontos > 0) logs.push({ user_id: pick.user_id, team_id: pick.team_id, match_id: match.id, tipo, pontos, descricao: desc, fase: match.fase })
     }
     if (logs.length > 0) await supabase.from('points_log').insert(logs)
+  }
+
+  async function distribuirColocacaoFinal() {
+    if (!colocacaoFinal.primeiro || !colocacaoFinal.segundo || !colocacaoFinal.terceiro) {
+      setColocacaoMsg('❌ Selecione os 3 times colocados!'); return
+    }
+    setSavingColocacao(true); setColocacaoMsg('')
+    try {
+      const times = [
+        { teamId: colocacaoFinal.primeiro, pontos: 10, desc: '🥇 1º lugar final +10pts', tipo: 'colocacao_final' },
+        { teamId: colocacaoFinal.segundo, pontos: 6, desc: '🥈 2º lugar final +6pts', tipo: 'colocacao_final' },
+        { teamId: colocacaoFinal.terceiro, pontos: 3, desc: '🥉 3º lugar final +3pts', tipo: 'colocacao_final' },
+      ]
+      const logs = []
+      for (const t of times) {
+        const { data: jaExiste } = await supabase.from('points_log').select('id')
+          .eq('team_id', t.teamId).eq('tipo', 'colocacao_final').limit(1)
+        if (jaExiste && jaExiste.length > 0) continue
+        const { data: teamPicks } = await supabase.from('picks').select('user_id').eq('team_id', t.teamId)
+        ;(teamPicks || []).forEach(p => {
+          logs.push({ user_id: p.user_id, team_id: t.teamId, tipo: t.tipo, pontos: t.pontos, descricao: t.desc, fase: 'final' })
+        })
+      }
+      if (logs.length > 0) await supabase.from('points_log').insert(logs)
+      setColocacaoMsg(`✅ Pontos de colocação distribuídos! ${logs.length} registros inseridos.`)
+      await loadAll()
+    } catch (err) {
+      setColocacaoMsg('❌ Erro: ' + err.message)
+    } finally {
+      setSavingColocacao(false)
+    }
   }
 
   async function ativarUsuario(userId) {
