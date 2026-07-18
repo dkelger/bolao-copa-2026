@@ -62,7 +62,8 @@ export default function Ranking() {
         oitavas: 0,        // oitavas
         quartas: 0,        // quartas
         semi: 0,           // semifinal
-        final: 0,          // final
+        terceiro_lugar: 0, // 3º lugar
+        campeao: 0,        // campeão
         quiz: 0,           // quiz normal
         quizBonus: 0,      // quiz bonus
         picks: []
@@ -80,6 +81,8 @@ export default function Ranking() {
       if (TIPOS_MATA.includes(row.tipo) && row.fase && map[row.user_id][row.fase] !== undefined) {
         map[row.user_id][row.fase] += p
       }
+      if (row.tipo === 'terceiro_lugar') map[row.user_id].terceiro_lugar += p
+      if (row.tipo === 'campeao') map[row.user_id].campeao += p
     })
 
     // Pontos por time — separado por categoria
@@ -215,7 +218,8 @@ export default function Ranking() {
                 if (r.oitavas > 0) tags.push({ label:`⚔️8 ${r.oitavas.toFixed(1)}`, cor:'#4fc3f7' })
                 if (r.quartas > 0) tags.push({ label:`⚔️4 ${r.quartas.toFixed(1)}`, cor:'#ff8c00' })
                 if (r.semi > 0) tags.push({ label:`⚔️2 ${r.semi.toFixed(1)}`, cor:'#ff4444' })
-                if (r.final > 0) tags.push({ label:`🏅 ${r.final.toFixed(1)}`, cor:'#FFD700' })
+                if (r.terceiro_lugar > 0) tags.push({ label:`🥉 ${r.terceiro_lugar.toFixed(1)}`, cor:'#cd7f32' })
+                if (r.campeao > 0) tags.push({ label:`🏆 ${r.campeao.toFixed(1)}`, cor:'#FFD700' })
                 if (r.quiz > 0) tags.push({ label:`🧠 ${r.quiz.toFixed(1)}`, cor:'#00C853' })
                 if (r.quizBonus > 0) tags.push({ label:`⚡ ${r.quizBonus.toFixed(1)}`, cor:'#FFD700' })
 
@@ -347,7 +351,8 @@ export default function Ranking() {
                             { label:"⚔️ OITAVAS", val: r.oitavas.toFixed(1), cor:"#4fc3f7", show: r.oitavas > 0 },
                             { label:"⚔️ QUARTAS", val: r.quartas.toFixed(1), cor:"#ff8c00", show: r.quartas > 0 },
                             { label:"⚔️ SEMI", val: r.semi.toFixed(1), cor:"#ff4444", show: r.semi > 0 },
-                            { label:"🏅 FINAL", val: r.final.toFixed(1), cor:"#FFD700", show: r.final > 0 },
+                            { label:"🥉 3º LUGAR", val: r.terceiro_lugar.toFixed(1), cor:"#cd7f32", show: r.terceiro_lugar > 0 },
+                            { label:"🏆 CAMPEÃO", val: r.campeao.toFixed(1), cor:"#FFD700", show: r.campeao > 0 },
                             { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853", show: r.quiz > 0 },
                             { label:"⚡ BÔNUS", val: r.quizBonus.toFixed(1), cor:"#FFD700", show: r.quizBonus > 0 },
                           ].filter(x => x.show).map(item => (
