@@ -499,9 +499,9 @@ export default function Landing() {
         <div style={{textAlign:"center", marginBottom:36}}>
           <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
             fontWeight:700, letterSpacing:3, color:"#FFD700",
-            textTransform:"uppercase", marginBottom:8}}>última rodada</div>
+            textTransform:"uppercase", marginBottom:8}}>finais copa 2026</div>
           <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:48,
-            color:"white", letterSpacing:3, margin:0}}>PONTUAÇÃO ESPECIAL</h2>
+            color:"white", letterSpacing:3, margin:0}}>SISTEMA DE PONTUAÇÃO DAS FINAIS</h2>
         </div>
         <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:16}}>
           <div style={{background:"#0d1a0d", border:"1px solid rgba(205,127,50,.25)", borderRadius:16, padding:24}}>
