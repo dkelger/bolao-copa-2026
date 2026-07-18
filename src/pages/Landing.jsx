@@ -45,7 +45,7 @@ export default function Landing() {
     supabase
       .from('matches')
       .select('*, team_a:teams!matches_team_a_id_fkey(nome, grupo), team_b:teams!matches_team_b_id_fkey(nome, grupo)')
-      .eq('fase', 'semi')
+      .in('fase', ['terceiro_lugar', 'final'])
       .order('data_hora')
       .then(({ data }) => setPartidas(data || []))
   }, [])
@@ -283,7 +283,7 @@ export default function Landing() {
               fontWeight:700, letterSpacing:3, color:"#00C853",
               textTransform:"uppercase", marginBottom:8}}>calendário</div>
             <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:52,
-              color:"white", letterSpacing:3, margin:0}}>SEMIFINAIS</h2>
+              color:"white", letterSpacing:3, margin:0}}>FINAL & 3º LUGAR</h2>
           </div>
 
           <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:12}}>
@@ -302,7 +302,7 @@ export default function Landing() {
                   <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14}}>
                     <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
                       fontWeight:700, letterSpacing:1.5, color:"#FFD700", textTransform:"uppercase"}}>
-                      ⚔️ Semifinal
+                      ⚔️ Final & 3º Lugar
                     </div>
                     <div style={{display:"flex", alignItems:"center", gap:6}}>
                       {encerrado ? (
@@ -490,6 +490,81 @@ export default function Landing() {
                 Empate no 4º critério: nenhum dos dois recebe o prêmio — o valor é dividido igualmente entre eles.
               </span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PONTUAÇÃO ESPECIAL FASE FINAL */}
+      <section style={{padding:"60px 24px", maxWidth:800, margin:"0 auto"}}>
+        <div style={{textAlign:"center", marginBottom:36}}>
+          <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
+            fontWeight:700, letterSpacing:3, color:"#FFD700",
+            textTransform:"uppercase", marginBottom:8}}>última rodada</div>
+          <h2 style={{fontFamily:"'Bebas Neue', sans-serif", fontSize:48,
+            color:"white", letterSpacing:3, margin:0}}>PONTUAÇÃO ESPECIAL</h2>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:16}}>
+          <div style={{background:"#0d1a0d", border:"1px solid rgba(205,127,50,.25)", borderRadius:16, padding:24}}>
+            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:14,
+              fontWeight:700, color:"#cd7f32", letterSpacing:2,
+              textTransform:"uppercase", marginBottom:16,
+              paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              🥉 Disputa de 3º Lugar
+            </div>
+            {[
+              { desc:"Vencer no tempo normal", pts:"+3 pts" },
+              { desc:"Vencer nos pênaltis", pts:"+1 pt" },
+            ].map(item => (
+              <div key={item.desc} style={{display:"flex", justifyContent:"space-between",
+                alignItems:"center", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                <span style={{fontSize:14, color:"#9ab89a"}}>{item.desc}</span>
+                <span style={{fontFamily:"'Barlow Condensed', sans-serif",
+                  fontSize:16, fontWeight:700, color:"#cd7f32"}}>{item.pts}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"#0d1a0d", border:"1px solid rgba(255,215,0,.25)", borderRadius:16, padding:24}}>
+            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:14,
+              fontWeight:700, color:"#FFD700", letterSpacing:2,
+              textTransform:"uppercase", marginBottom:16,
+              paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              🏆 Grande Final
+            </div>
+            {[
+              { desc:"Vencer no tempo normal", pts:"+5 pts" },
+              { desc:"Vencer nos pênaltis", pts:"+3 pts" },
+            ].map(item => (
+              <div key={item.desc} style={{display:"flex", justifyContent:"space-between",
+                alignItems:"center", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                <span style={{fontSize:14, color:"#9ab89a"}}>{item.desc}</span>
+                <span style={{fontFamily:"'Barlow Condensed', sans-serif",
+                  fontSize:16, fontWeight:700, color:"#FFD700"}}>{item.pts}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,215,0,.03))",
+            border:"1px solid rgba(255,215,0,.3)", borderRadius:16, padding:24}}>
+            <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:14,
+              fontWeight:700, color:"#FFD700", letterSpacing:2,
+              textTransform:"uppercase", marginBottom:16,
+              paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              🎖️ Bônus Colocação Final
+            </div>
+            <p style={{fontSize:12, color:"#6b8a62", marginBottom:12}}>
+              Pontos extras para quem escolheu os times do pódio!
+            </p>
+            {[
+              { desc:"🥇 Time Campeão", pts:"+10 pts", cor:"#FFD700" },
+              { desc:"🥈 Vice-Campeão", pts:"+6 pts", cor:"#b0b0b0" },
+              { desc:"🥉 3º Colocado", pts:"+3 pts", cor:"#cd7f32" },
+            ].map(item => (
+              <div key={item.desc} style={{display:"flex", justifyContent:"space-between",
+                alignItems:"center", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                <span style={{fontSize:14, color:"#9ab89a"}}>{item.desc}</span>
+                <span style={{fontFamily:"'Barlow Condensed', sans-serif",
+                  fontSize:16, fontWeight:700, color:item.cor}}>{item.pts}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
