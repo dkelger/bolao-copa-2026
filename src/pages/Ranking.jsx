@@ -85,7 +85,6 @@ export default function Ranking() {
       if (row.tipo === 'terceiro_lugar') map[row.user_id].terceiro_lugar += p
       if (row.tipo === 'campeao') map[row.user_id].campeao += p
       if (row.tipo === 'colocacao_final') map[row.user_id].colocacao += p
-      if (row.tipo === 'colocacao_final') map[row.user_id].total += p
     })
 
     // Pontos por time — separado por categoria
