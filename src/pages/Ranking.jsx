@@ -42,7 +42,7 @@ export default function Ranking() {
 
   async function loadRanking() {
     const [{ data: users }, { data: picks }] = await Promise.all([
-      supabase.from('users').select('id, nome, status').neq('status', 'admin'),
+      supabase.from('users').select('id, nome, status').eq('status', 'ativo'),
       supabase.from('picks').select('user_id, team_id, teams(nome)'),
     ])
 
