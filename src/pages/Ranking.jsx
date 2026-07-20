@@ -41,11 +41,25 @@ export default function Ranking() {
   },[])
 
   async function loadRanking() {
-    const [{ data: users }, { data: pts }, { data: picks }] = await Promise.all([
+    const [{ data: users }, { data: picks }] = await Promise.all([
       supabase.from('users').select('id, nome, status').neq('status', 'admin'),
-      supabase.from('points_log').select('user_id, team_id, pontos, tipo, fase').limit(2000),
       supabase.from('picks').select('user_id, team_id, teams(nome)'),
     ])
+
+    // Busca todos os pontos com paginação
+    let pts = []
+    let from = 0
+    const pageSize = 500
+    while (true) {
+      const { data: page } = await supabase
+        .from('points_log')
+        .select('user_id, team_id, pontos, tipo, fase')
+        .range(from, from + pageSize - 1)
+      if (!page || page.length === 0) break
+      pts = [...pts, ...page]
+      if (page.length < pageSize) break
+      from += pageSize
+    }
 
     if (!users) { setLoading(false); return }
 
