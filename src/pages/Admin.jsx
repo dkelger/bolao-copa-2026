@@ -124,7 +124,7 @@ export default function Admin() {
 
     // Verifica se jogos dos 16 avos já foram gerados
     const temDezesseis = (m || []).some(x => x.fase === 'dezasseis')
-    setJogosGerados(temDezasseis)
+    setJogosGerados(!!(m || []).some(x => x.fase === 'dezasseis'))
 
     const naoAdmin = (u || []).filter(x => x.status !== 'admin')
     const ativos = naoAdmin.filter(x => x.status === 'ativo').length
