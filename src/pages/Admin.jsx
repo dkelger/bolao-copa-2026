@@ -783,7 +783,43 @@ export default function Admin() {
             </div>
           </div>
         )}
-
+        {/* COLOCAÇÃO FINAL */}
+{tab==='grupos' && (
+  <div style={{background:"#1a2418",border:"1px solid rgba(0,200,83,.16)",borderRadius:14,padding:20,marginTop:16}}>
+    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:700,marginBottom:8}}>
+      🏆 Colocação Final — Distribuir Pontos Bônus
+    </div>
+    <p style={{fontSize:13,color:"#6b8a62",marginBottom:16}}>
+      Selecione 1º, 2º e 3º colocados para distribuir +10/+6/+3pts.
+    </p>
+    <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+      {[
+        {label:"🥇 1º Lugar (+10pts)",key:"primeiro",cor:"#FFD700"},
+        {label:"🥈 2º Lugar (+6pts)",key:"segundo",cor:"#b0b0b0"},
+        {label:"🥉 3º Lugar (+3pts)",key:"terceiro",cor:"#cd7f32"},
+      ].map(item => (
+        <div key={item.key} style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:item.cor,minWidth:180}}>{item.label}</span>
+          <select style={{background:"rgba(255,255,255,.05)",border:"1.5px solid rgba(0,200,83,.16)",borderRadius:8,color:"#dff0d8",fontFamily:"'Barlow',sans-serif",fontSize:14,padding:"10px 14px",outline:"none",flex:1,minWidth:200}}
+            value={colocacaoFinal[item.key]}
+            onChange={e=>setColocacaoFinal(prev=>({...prev,[item.key]:e.target.value}))}>
+            <option value="">Selecione o time...</option>
+            {allTeams.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+          </select>
+        </div>
+      ))}
+    </div>
+    {colocacaoMsg && (
+      <div style={{background:colocacaoMsg.includes('OK')?"rgba(0,200,83,.1)":"rgba(255,70,70,.1)",border:`1px solid ${colocacaoMsg.includes('OK')?"rgba(0,200,83,.3)":"rgba(255,70,70,.3)"}`,borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:colocacaoMsg.includes('OK')?"#00C853":"#ff7070"}}>
+        {colocacaoMsg}
+      </div>
+    )}
+    <button style={{background:"#FFD700",color:"#080d0a",border:"none",borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,letterSpacing:1.5,padding:"14px 28px",cursor:"pointer"}}
+      onClick={distribuirColocacaoFinal} disabled={savingColocacao}>
+      {savingColocacao?"Distribuindo...":"🏆 DISTRIBUIR PONTOS DE COLOCAÇÃO FINAL"}
+    </button>
+  </div>
+)}
         {/* ===== PARTICIPANTES ===== */}
         {tab==='participantes' && (
           <div style={s.card}>
