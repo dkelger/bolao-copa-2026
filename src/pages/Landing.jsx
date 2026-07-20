@@ -164,6 +164,78 @@ export default function Landing() {
         </button>
       </section>
 
+      {/* RESULTADOS DA COPA */}
+      <section style={{padding:"40px 24px 20px",maxWidth:1100,margin:"0 auto"}}>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,letterSpacing:3,color:"#00C853",textTransform:"uppercase",marginBottom:8}}>Copa do Mundo 2026</div>
+          <h2 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:52,color:"white",letterSpacing:3,margin:0}}>RESULTADOS FINAIS</h2>
+        </div>
+
+        {/* Classificação + Artilheiro + Placar */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16,marginBottom:20}}>
+
+          {/* Classificação */}
+          <div style={{background:"#0d1a0d",border:"1px solid rgba(255,215,0,.2)",borderRadius:16,padding:24}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:"#FFD700",letterSpacing:2,textTransform:"uppercase",marginBottom:16,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              🏆 Classificação Final
+            </div>
+            {[
+              {pos:"🥇",time:"Espanha",flag:"🇪🇸",cor:"#FFD700"},
+              {pos:"🥈",time:"Argentina",flag:"🇦🇷",cor:"#b0b0b0"},
+              {pos:"🥉",time:"Inglaterra",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",cor:"#cd7f32"},
+              {pos:"4º",time:"França",flag:"🇫🇷",cor:"#6b8a62"},
+            ].map(item => (
+              <div key={item.time} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:item.cor,minWidth:32}}>{item.pos}</span>
+                <span style={{fontSize:22}}>{item.flag}</span>
+                <span style={{fontSize:15,fontWeight:600,color:"#dff0d8"}}>{item.time}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Artilheiro */}
+          <div style={{background:"#0d1a0d",border:"1px solid rgba(0,200,83,.2)",borderRadius:16,padding:24}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:"#00C853",letterSpacing:2,textTransform:"uppercase",marginBottom:16,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              ⚽ Artilheiro da Copa
+            </div>
+            <div style={{textAlign:"center",padding:"16px 0"}}>
+              <div style={{fontSize:48,marginBottom:8}}>🇫🇷</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,color:"white",letterSpacing:2}}>KYLIAN MBAPPÉ</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:52,color:"#00C853",lineHeight:1}}>10 gols</div>
+              <div style={{marginTop:12,background:"rgba(0,200,83,.08)",border:"1px solid rgba(0,200,83,.15)",borderRadius:10,padding:"8px 16px",display:"inline-block"}}>
+                <div style={{fontSize:12,color:"#6b8a62",marginBottom:2}}>Participantes que acertaram</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,color:"#00C853"}}>7 participantes +3pts cada</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Placar da Final */}
+          <div style={{background:"#0d1a0d",border:"1px solid rgba(255,215,0,.2)",borderRadius:16,padding:24}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:"#FFD700",letterSpacing:2,textTransform:"uppercase",marginBottom:16,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              🏆 Grande Final
+            </div>
+            <div style={{textAlign:"center",padding:"16px 0"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:16}}>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:40,marginBottom:4}}>🇪🇸</div>
+                  <div style={{fontSize:13,color:"#dff0d8",fontWeight:600}}>Espanha</div>
+                </div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:52,color:"#FFD700",letterSpacing:4}}>1 x 0</div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:40,marginBottom:4}}>🇦🇷</div>
+                  <div style={{fontSize:13,color:"#dff0d8",fontWeight:600}}>Argentina</div>
+                </div>
+              </div>
+              <div style={{background:"rgba(255,70,70,.08)",border:"1px solid rgba(255,70,70,.2)",borderRadius:10,padding:"8px 16px",display:"inline-block"}}>
+                <div style={{fontSize:12,color:"#6b8a62",marginBottom:2}}>Participantes que acertaram o placar</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,color:"#ff7070"}}>Nenhum acertou</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
       {/* PÓDIO — TOP 3 */}
       <section style={{padding:"60px 24px",maxWidth:1100,margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:40}}>
