@@ -18,11 +18,9 @@ const BANDEIRAS = {
   'Bósnia e Herzegovina':'🇧🇦'
 }
 
-// Tipos de pontos por seleção (jogos)
 const TIPOS_GRUPO = ['vitoria_grupo','empate_grupo','derrota_grupo']
 const TIPOS_CLASSIF = ['classificacao_grupo']
 const TIPOS_MATA = ['mata_mata_normal','mata_mata_penaltis']
-const FASES_MATA = ['dezasseis','oitavas','quartas','semi','final']
 
 export default function Ranking() {
   const navigate = useNavigate()
@@ -56,17 +54,17 @@ export default function Ranking() {
       map[u.id] = {
         nome: u.nome, status: u.status,
         total: 0,
-        jogosGrupo: 0,    // vitoria/empate fase grupos
-        classif: 0,        // classificacao_grupo (1º/2º/3º)
-        dezasseis: 0,      // 16 avos
-        oitavas: 0,        // oitavas
-        quartas: 0,        // quartas
-        semi: 0,           // semifinal
-        terceiro_lugar: 0, // 3º lugar
-        campeao: 0,        // campeão
-        colocacao: 0,      // colocação final (1º/2º/3º)
-        quiz: 0,           // quiz normal
-        quizBonus: 0,      // quiz bonus
+        jogosGrupo: 0,
+        classif: 0,
+        dezasseis: 0,
+        oitavas: 0,
+        quartas: 0,
+        semi: 0,
+        terceiro_lugar: 0,
+        campeao: 0,
+        colocacao: 0,
+        quiz: 0,
+        quizBonus: 0,
         picks: []
       }
     })
@@ -74,24 +72,29 @@ export default function Ranking() {
     ;(pts || []).forEach(row => {
       if (!map[row.user_id]) return
       const p = Number(row.pontos)
+
+      // Soma SEMPRE no total
       map[row.user_id].total += p
+
+      // Categorias específicas
       if (row.tipo === 'quiz') map[row.user_id].quiz += p
       if (row.tipo === 'quiz_bonus') map[row.user_id].quizBonus += p
       if (row.tipo === 'classificacao_grupo') map[row.user_id].classif += p
+      if (row.tipo === 'terceiro_lugar') map[row.user_id].terceiro_lugar += p
+      if (row.tipo === 'campeao') map[row.user_id].campeao += p
+      if (row.tipo === 'colocacao_final') map[row.user_id].colocacao += p
       if (TIPOS_GRUPO.includes(row.tipo)) map[row.user_id].jogosGrupo += p
       if (TIPOS_MATA.includes(row.tipo) && row.fase && map[row.user_id][row.fase] !== undefined) {
         map[row.user_id][row.fase] += p
       }
-      if (row.tipo === 'terceiro_lugar') map[row.user_id].terceiro_lugar += p
-      if (row.tipo === 'campeao') map[row.user_id].campeao += p
-      if (row.tipo === 'colocacao_final') map[row.user_id].colocacao += p
     })
 
-    // Pontos por time — separado por categoria
-    const ptsPerTeam = {}         // total por time
-    const ptsGrupoPerTeam = {}    // só jogos de grupo
-    const ptsClassifPerTeam = {}  // só classificação
-    const ptsMataMataPerTeam = {} // só mata-mata
+    // Pontos por time
+    const ptsPerTeam = {}
+    const ptsGrupoPerTeam = {}
+    const ptsClassifPerTeam = {}
+    const ptsMataMataPerTeam = {}
+    const ptsColocacaoPerTeam = {}
 
     ;(pts || []).forEach(row => {
       if (!row.team_id) return
@@ -101,11 +104,9 @@ export default function Ranking() {
       if (TIPOS_GRUPO.includes(row.tipo)) ptsGrupoPerTeam[key] = (ptsGrupoPerTeam[key] || 0) + p
       if (TIPOS_CLASSIF.includes(row.tipo)) ptsClassifPerTeam[key] = (ptsClassifPerTeam[key] || 0) + p
       if (TIPOS_MATA.includes(row.tipo)) ptsMataMataPerTeam[key] = (ptsMataMataPerTeam[key] || 0) + p
-      // por fase
-      if (TIPOS_MATA.includes(row.tipo) && row.fase) {
-        const faseKey = `${key}__${row.fase}`
-        ptsMataMataPerTeam[faseKey] = (ptsMataMataPerTeam[faseKey] || 0) + p
-      }
+      if (row.tipo === 'terceiro_lugar') ptsMataMataPerTeam[key] = (ptsMataMataPerTeam[key] || 0) + p
+      if (row.tipo === 'campeao') ptsMataMataPerTeam[key] = (ptsMataMataPerTeam[key] || 0) + p
+      if (row.tipo === 'colocacao_final') ptsColocacaoPerTeam[key] = (ptsColocacaoPerTeam[key] || 0) + p
     })
 
     ;(picks || []).forEach(p => {
@@ -118,6 +119,7 @@ export default function Ranking() {
         pontosGrupo: ptsGrupoPerTeam[key] || 0,
         pontosClassif: ptsClassifPerTeam[key] || 0,
         pontosMataMata: ptsMataMataPerTeam[key] || 0,
+        pontosColocacao: ptsColocacaoPerTeam[key] || 0,
       })
     })
 
@@ -183,7 +185,7 @@ export default function Ranking() {
                       return (
                         <div key={s.nome} style={{display:"flex",flexDirection:"column",alignItems:"center",flex:"1 0 48px",gap:4}}>
                           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,color:cor}}>{s.pct}%</div>
-                          <div style={{width:"100%",maxWidth:44,borderRadius:"4px 4px 0 0",height:`${h}px`,background:`linear-gradient(to top,${cor}cc,${cor}66)`,border:`1px solid ${cor}44`,transition:"height .4s ease"}}/>
+                          <div style={{width:"100%",maxWidth:44,borderRadius:"4px 4px 0 0",height:`${h}px`,background:`linear-gradient(to top,${cor}cc,${cor}66)`,border:`1px solid ${cor}44`}}/>
                           <div style={{fontSize:16,lineHeight:1}}>{BANDEIRAS[s.nome]||'🏴'}</div>
                           <div style={{fontSize:9,color:"#6b8a62",textAlign:"center",lineHeight:1.2,maxWidth:44,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{s.nome.split(' ')[0]}</div>
                         </div>
@@ -212,7 +214,6 @@ export default function Ranking() {
                 const isMe = r.id === currentUserId
                 const aberto = expandido[r.id]
 
-                // Tags inline resumidas
                 const tags = []
                 if (r.jogosGrupo > 0) tags.push({ label:`⚽ ${r.jogosGrupo.toFixed(1)}`, cor:'#6b8a62' })
                 if (r.classif > 0) tags.push({ label:`🏆 ${r.classif.toFixed(1)}`, cor:'#b0b0b0' })
@@ -252,7 +253,6 @@ export default function Ranking() {
                         <div style={{fontSize:15, fontWeight:600, color: isMe ? "#00C853" : "#dff0d8"}}>
                           {r.nome} {isMe && <span style={{fontSize:11, opacity:.7}}>(você)</span>}
                         </div>
-                        {/* Seleções inline */}
                         {r.picks.length > 0 && (
                           <div style={{display:"flex", gap:8, flexWrap:"wrap", marginTop:3}}>
                             {r.picks.map((p, idx) => (
@@ -265,7 +265,6 @@ export default function Ranking() {
                             ))}
                           </div>
                         )}
-                        {/* Tags de pontos por categoria */}
                         {tags.length > 0 && (
                           <div style={{display:"flex", gap:6, flexWrap:"wrap", marginTop:3}}>
                             {tags.map(t => (
@@ -288,12 +287,10 @@ export default function Ranking() {
                       </div>
                     </div>
 
-                    {/* EXPANDIDO */}
                     {aberto && (
                       <div style={{margin:"0 16px 12px", background:"rgba(0,0,0,.25)",
                         border:"1px solid rgba(255,255,255,.06)", borderRadius:10, padding:"16px"}}>
 
-                        {/* Cards por seleção com detalhamento */}
                         <div style={{fontFamily:"'Barlow Condensed', sans-serif", fontSize:11,
                           fontWeight:700, letterSpacing:2, color:"#6b8a62",
                           textTransform:"uppercase", marginBottom:12}}>Seleções e pontos</div>
@@ -316,7 +313,6 @@ export default function Ranking() {
                                     </div>
                                   </div>
                                 </div>
-                                {/* Detalhamento por tipo */}
                                 <div style={{display:"flex", flexDirection:"column", gap:3,
                                   paddingTop:8, borderTop:"1px solid rgba(255,255,255,.05)"}}>
                                   {p.pontosGrupo > 0 && (
@@ -337,13 +333,18 @@ export default function Ranking() {
                                       <span style={{color:"#ff8c00", fontWeight:700}}>+{p.pontosMataMata.toFixed(1)}</span>
                                     </div>
                                   )}
+                                  {p.pontosColocacao > 0 && (
+                                    <div style={{display:"flex", justifyContent:"space-between", fontSize:11}}>
+                                      <span style={{color:"#6b8a62"}}>🎖️ Colocação final</span>
+                                      <span style={{color:"#FFD700", fontWeight:700}}>+{p.pontosColocacao.toFixed(1)}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
 
-                        {/* Resumo total */}
                         <div style={{display:"flex", gap:16, flexWrap:"wrap",
                           paddingTop:12, borderTop:"1px solid rgba(255,255,255,.05)"}}>
                           {[
@@ -354,11 +355,11 @@ export default function Ranking() {
                             { label:"⚔️ OITAVAS", val: r.oitavas.toFixed(1), cor:"#4fc3f7", show: r.oitavas > 0 },
                             { label:"⚔️ QUARTAS", val: r.quartas.toFixed(1), cor:"#ff8c00", show: r.quartas > 0 },
                             { label:"⚔️ SEMI", val: r.semi.toFixed(1), cor:"#ff4444", show: r.semi > 0 },
-                            { label:"🥉 3º LUGAR", val: r.terceiro_lugar.toFixed(1), cor:"#cd7f32", show: r.terceiro_lugar > 0 },
-                            { label:"🏆 CAMPEÃO", val: r.campeao.toFixed(1), cor:"#FFD700", show: r.campeao > 0 },
-                            { label:"🎖️ COLOCAÇÃO", val: r.colocacao.toFixed(1), cor:"#fff", show: r.colocacao > 0 },
+                            { label:"🥉 3 LUGAR", val: r.terceiro_lugar.toFixed(1), cor:"#cd7f32", show: r.terceiro_lugar > 0 },
+                            { label:"🏆 CAMPEAO", val: r.campeao.toFixed(1), cor:"#FFD700", show: r.campeao > 0 },
+                            { label:"🎖️ COLOCACAO", val: r.colocacao.toFixed(1), cor:"#fff", show: r.colocacao > 0 },
                             { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853", show: r.quiz > 0 },
-                            { label:"⚡ BÔNUS", val: r.quizBonus.toFixed(1), cor:"#FFD700", show: r.quizBonus > 0 },
+                            { label:"⚡ BONUS", val: r.quizBonus.toFixed(1), cor:"#FFD700", show: r.quizBonus > 0 },
                           ].filter(x => x.show).map(item => (
                             <div key={item.label}>
                               <div style={{fontSize:10, color:"#6b8a62", letterSpacing:1,
