@@ -77,6 +77,7 @@ export default function Ranking() {
         terceiro_lugar: 0,
         campeao: 0,
         colocacao: 0,
+        artilheiro: 0,
         quiz: 0,
         quizBonus: 0,
         picks: []
@@ -97,6 +98,7 @@ export default function Ranking() {
       if (row.tipo === 'terceiro_lugar') map[row.user_id].terceiro_lugar += p
       if (row.tipo === 'campeao') map[row.user_id].campeao += p
       if (row.tipo === 'colocacao_final') map[row.user_id].colocacao += p
+      if (row.tipo === 'artilheiro') map[row.user_id].artilheiro += p
       if (TIPOS_GRUPO.includes(row.tipo)) map[row.user_id].jogosGrupo += p
       if (TIPOS_MATA.includes(row.tipo) && row.fase && map[row.user_id][row.fase] !== undefined) {
         map[row.user_id][row.fase] += p
@@ -372,6 +374,7 @@ export default function Ranking() {
                             { label:"🥉 3 LUGAR", val: r.terceiro_lugar.toFixed(1), cor:"#cd7f32", show: r.terceiro_lugar > 0 },
                             { label:"🏆 CAMPEAO", val: r.campeao.toFixed(1), cor:"#FFD700", show: r.campeao > 0 },
                             { label:"🎖️ COLOCACAO", val: r.colocacao.toFixed(1), cor:"#fff", show: r.colocacao > 0 },
+                            { label:"⚽ ARTILHEIRO", val: r.artilheiro.toFixed(1), cor:"#00C853", show: r.artilheiro > 0 },
                             { label:"🧠 QUIZ", val: r.quiz.toFixed(1), cor:"#00C853", show: r.quiz > 0 },
                             { label:"⚡ BONUS", val: r.quizBonus.toFixed(1), cor:"#FFD700", show: r.quizBonus > 0 },
                           ].filter(x => x.show).map(item => (
